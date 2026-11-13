@@ -72,7 +72,7 @@ export default function Presentation({ track, onClose }) {
     } catch { setNotice('Chưa bật được toàn màn hình. Bạn vẫn có thể xem trong cửa sổ.'); }
   }
   return <dialog ref={dialog} id="presentation" data-theme={theme} aria-label="Trình chiếu lời bài hát" onCancel={event => { event.preventDefault(); onClose(); }} onKeyDown={handleKey}>
-    <div className="slide-top"><span className="slide-title">{track.trackName}</span><output className="slide-counter" aria-label="Trang trình chiếu">{index + 1}/{total}</output><button className="slide-exit" onClick={onClose}>Thoát (Esc)</button></div>
+    <div className="slide-top"><span className="slide-title">{track.trackName}</span><div className="slide-brand" aria-hidden="true"><span className="marquee-track"><span>ÂM THANH NHẠC SỐNG HỒNG LÂM</span><span aria-hidden="true">ÂM THANH NHẠC SỐNG HỒNG LÂM</span></span></div><div className="slide-corner"><output className="slide-counter" aria-label="Trang trình chiếu">{index + 1}/{total}</output><button className="slide-exit" onClick={onClose}>Thoát (Esc)</button></div></div>
     <div ref={stage} className="slide-stage" tabIndex={0} role="region" aria-label="Lời trình chiếu" onClick={() => move(1)}><pre ref={lyrics} id="present-lyrics" aria-live="polite">{text}</pre></div>
     <div className="slide-bottom">
       <div className="slide-options"><label>Cỡ chữ <input type="range" min="28" max="150" value={size} onChange={event => setSize(Number(event.target.value))} /></label>{!fullscreen && <button onClick={enterFullscreen}>Toàn màn hình</button>}</div>

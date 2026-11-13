@@ -3,7 +3,61 @@ import { test, expect } from '@playwright/test';
 const song = { id: 1, trackName: 'Bài hát thử', artistName: 'Ca sĩ thử', albumName: 'Buổi diễn', duration: 200, plainLyrics: Array.from({length: 45}, (_, index) => `Dòng lời minh họa ${index + 1}`).join('\n'), syncedLyrics: null };
 // Never touch the real Supabase catalog from tests: empty list, and inserts are swallowed.
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/zing/**', route => route.fulfill({json: []}));
+  await page.route('https://graph.nhaccuatui.com/**', route => route.fulfill({ json: { code: 0, data: { songs: [] } }, headers: {'access-control-allow-origin':'*'} }));
   await page.route('**/rest/v1/songs**', route => route.fulfill({ status: route.request().method() === 'POST' ? 201 : 200, json: [], headers: {'access-control-allow-origin':'*', 'access-control-allow-headers':'*', 'access-control-allow-methods':'*'} }));
+});
+
+test('Zing previews load before opening and reuse lyrics when opening and searching again', async ({page}) => {
+  let lyricCalls=0;
+  const zingSong={...song,id:3000000000001,zingId:'ZqfoKtrd1H7M',trackName:'Bài Zing thử',plainLyrics:null};
+  await page.route('**/api/zing/search?**',route=>route.fulfill({json:[zingSong]}));
+  await page.route('**/api/zing/lyrics?**',route=>{lyricCalls++;return route.fulfill({json:{plainLyrics:song.plainLyrics}});});
+  await page.route('https://lrclib.net/api/search?**',route=>route.fulfill({json:[]}));
+  await page.goto('/');await page.getByRole('searchbox').fill('Bài Zing');
+  const result=page.getByRole('button',{name:/Bài Zing thử.*Zing MP3/});
+  await expect(result.locator('.lyric-preview')).toContainText('Dòng lời minh họa 1');
+  expect(lyricCalls).toBe(1);
+  await page.getByRole('searchbox').fill('Bài Zing ');
+  await expect(page.locator('#status')).toContainText('Đang nhập');
+  await expect(result.locator('.lyric-preview')).toContainText('Dòng lời minh họa 1');
+  expect(lyricCalls).toBe(1);
+  await result.click();await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button',{name:'Thoát (Esc)'}).click();
+  await expect(page.locator('.source-note')).toContainText('Zing MP3');
+  await expect(page.locator('#lyrics')).toContainText('Dòng lời minh họa 1');
+  await page.getByRole('button',{name:'♡ Lưu bài'}).click();await page.reload();
+  await page.getByRole('button',{name:/Bài đã lưu/}).click();await result.click();
+  await page.getByRole('button',{name:'Thoát (Esc)'}).click();
+  await expect(page.locator('.source-note')).toContainText('Zing MP3');expect(lyricCalls).toBe(1);
+});
+
+test('Zing preview errors can retry on open and stale previews cannot overwrite a new query', async ({page}) => {
+  const zingSong={...song,id:3000000000001,zingId:'ZqfoKtrd1H7M',trackName:'Bài Zing thử',plainLyrics:null};
+  let fail=true, release;
+  const pending=new Promise(resolve=>{release=resolve;});
+  await page.route('https://lrclib.net/api/search?**',route=>route.fulfill({json:[]}));
+  await page.route('**/api/zing/search?**',route=>route.fulfill({json:[zingSong]}));
+  await page.route('**/api/zing/lyrics?**',async route=>{
+    if(fail) return route.fulfill({status:502,json:{error:'Temporary error'}});
+    await pending;return route.fulfill({json:{plainLyrics:song.plainLyrics}}).catch(()=>{});
+  });
+  await page.goto('/');await page.getByRole('searchbox').fill('Bài Zing');
+  await expect(page.locator('.lyric-preview')).toContainText('Nhấn để thử lại');
+  fail=false;
+  await page.getByRole('searchbox').fill('Bài Zing mới');
+  await expect(page.locator('.lyric-preview')).toContainText('Đang tải đoạn lời');
+  await page.getByRole('button',{name:'Xóa từ khóa'}).click();release();
+  await expect(page.locator('.result')).toHaveCount(0);
+  await page.getByRole('searchbox').fill('Bài Zing');
+  const result=page.getByRole('button',{name:/Bài Zing thử.*Zing MP3/});
+  await expect(result.locator('.lyric-preview')).toContainText('Dòng lời minh họa');
+});
+
+test('Zing failure does not hide LRCLIB results',async({page})=>{
+  await page.route('**/api/zing/search?**',route=>route.fulfill({status:502,json:{error:'Unavailable'}}));
+  await page.goto('/');await searchSong(page);
+  await expect(page.locator('#lyrics')).toContainText('Dòng lời minh họa');
 });
 async function searchSong(page, closePresentation = true) {
   await page.route('https://lrclib.net/api/search?**', route => route.fulfill({ json: [song], headers: {'access-control-allow-origin':'*'} }));
@@ -179,7 +233,7 @@ test('search preserves typed spaces and prioritizes Vietnamese results', async (
   await expect(page.locator('#status')).toContainText('2 bản thu cho “Diễm xưa”');
   await expect(input).toHaveValue('Diễm xưa');
   expect(queries).toEqual(['Diễm','Diễm xưa']);
-  await expect(page.locator('.result strong').first()).toHaveText('Bài hát thử');
+  await expect(page.locator('.result strong').first()).toContainText('Bài hát thử');
   await input.fill('  Diễm   xưa  ');
   await expect.poll(()=>queries.length).toBe(3);
   expect(queries[2]).toBe('Diễm xưa');

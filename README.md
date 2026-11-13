@@ -49,6 +49,21 @@ và chỉ mở kết nối API tới LRCLIB (thêm WebSocket cho phát triển t
 
 ## Chức năng và giới hạn
 
+### Zing MP3
+
+Tìm kiếm bổ sung từ Zing MP3 qua `/api/zing/search?q=...`, song song với các nguồn hiện có.
+Đoạn lời xem trước được lấy tự động qua `/api/zing/lyrics?id=...` với tối đa 3 yêu cầu đồng thời.
+Lời tải thành công được lưu tạm tối đa 100 bài trong bộ nhớ trang và dùng lại khi mở bài/tìm lại.
+Chọn bài để trình chiếu hoặc lưu như bình thường; lỗi tạm thời có thể thử lại khi mở bài.
+Kết quả và lời đều ghi nguồn Zing MP3. Không cần cài thêm thư viện hay biến môi trường.
+
+Hai route chạy Node.js phía máy chủ Next.js, tương thích Vercel. Đây là API web không chính thức;
+tham số ký web được tham khảo từ `shin202/zingmp3-api-next` (ISC), chỉ dùng ở server.
+Nguồn này có thể đổi hoặc chặn theo vùng/IP. Khi lỗi, các nguồn khác vẫn hoạt động.
+Chỉ lấy dữ liệu tìm kiếm và lời do Zing trả về; không tích hợp phát nhạc hay mở nội dung VIP.
+
+Khi kiểm tra trình duyệt, mọi request `/api/zing/*` đều được giả lập để không gọi dịch vụ thật.
+
 Tự động tìm từ 1 ký tự sau khi ngừng gõ 350 ms; Enter/nút tìm chạy ngay.
 Hủy tìm kiếm cũ khi thay đổi nội dung, chờ gõ xong dấu tiếng Việt trước khi tìm.
 Giữ nguyên khoảng trắng trong ô nhập; chỉ chuẩn hóa khoảng trắng khi gửi API.

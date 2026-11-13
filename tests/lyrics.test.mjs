@@ -64,3 +64,52 @@ test('catalog matches initials and unaccented titles like "AL" -> À Lôi', () =
   assert.deepEqual(searchCatalog(words, 'anh khác').map(s=>s.title), ['Anh Khác Hay Em Khác']); // no mid-word match
   assert.deepEqual(searchCatalog(words, 'hôm qua').map(s=>s.title), ['Em Của Ngày Hôm Qua']); // word inside title still matches
 });
+
+test('NhacCuaTui rows map to stable non-colliding ids and clean lyrics', async () => {
+  const { nctTrack, isNct, cleanNctLyrics } = await import('../lib/lyrics.mjs');
+  const row = { key: 'Kx3Kbih0rS5z', name: 'Nàng Thơ', artistName: 'Hoàng Dũng', duration: 254 };
+  const track = nctTrack(row);
+  assert.ok(isNct(track)); assert.ok(validTrack(track)); assert.ok(track.id > 1e12);
+  assert.equal(nctTrack(row).id, track.id); // stable across searches, so saved songs stay selected
+  assert.notEqual(nctTrack({ ...row, key: 'GTEtM6oYgUpG' }).id, track.id);
+  assert.equal(track.nctKey, 'Kx3Kbih0rS5z');
+  assert.equal(nctTrack({ ...row, key: '../x' }), null);
+  assert.equal(nctTrack({ key: 'Kx3Kbih0rS5z', name: 'A' }), null);
+  assert.equal(cleanNctLyrics('Dòng 1<br>Dòng 2<br/><b>Dòng 3</b>\r\n'), 'Dòng 1\nDòng 2\nDòng 3');
+  assert.equal(cleanNctLyrics('Bài hát: Hoa Nở Không Màu - Hoài Lâm\nSáng tác: Nguyễn Minh Cường\n\nChỉ là nỗi nhớ\nLời: vẫn là lời hát'), 'Chỉ là nỗi nhớ\nLời: vẫn là lời hát');
+});
+
+test('same title + same lyrics collapse into one result listing the other singers', async () => {
+  const { collapseSameLyrics } = await import('../lib/lyrics.mjs');
+  const lyric = 'Sao không ôm anh như lần đầu tiên em đến';
+  const rows = [
+    { t: 'Ngày mai em đi', a: 'Hồ Ngọc Hà', l: lyric }, { t: 'Ngày Mai Em Đi', a: 'Soobin Hoàng Sơn', l: lyric },
+    { t: 'Ngày mai em đi', a: 'Lê Hiếu', l: lyric + '  ' }, { t: 'Ngày Mai Em Đi Mất', a: 'Đạt G', l: lyric },
+    { t: 'Ngày mai em đi', a: 'Ca sĩ khác', l: 'Lời hoàn toàn khác' }, { t: 'Ngày mai em đi', a: 'Không lời', l: '' },
+  ];
+  const seen = new Map();
+  const kept = collapseSameLyrics(rows, r => r.t, r => r.a, r => r.l, seen);
+  assert.deepEqual(kept.map(k => k.item.a), ['Hồ Ngọc Hà', 'Đạt G', 'Ca sĩ khác', 'Không lời']);
+  assert.deepEqual(kept[0].others, ['Soobin Hoàng Sơn', 'Lê Hiếu']);
+  // a later group (e.g. LRCLIB) sharing the map folds into the earlier one
+  assert.equal(collapseSameLyrics([{ t: 'NGÀY MAI EM ĐI', a: 'Ngọc Hạ', l: lyric }], r => r.t, r => r.a, r => r.l, seen).length, 0);
+  assert.deepEqual(kept[0].others, ['Soobin Hoàng Sơn', 'Lê Hiếu', 'Ngọc Hạ']);
+});
+
+test('splitArtists separates co-singers but keeps dashed names', async () => {
+  const { splitArtists } = await import('../lib/lyrics.mjs');
+  assert.deepEqual(splitArtists('Thu Phương, Huyền Baby, Trang Pháp'), ['Thu Phương', 'Huyền Baby', 'Trang Pháp']);
+  assert.deepEqual(splitArtists('Lê Hiếu feat. SOOBIN & Touliver'), ['Lê Hiếu', 'SOOBIN', 'Touliver']);
+  assert.deepEqual(splitArtists('Lê Hiếu/Soobin Hoàng Sơn; Touliver'), ['Lê Hiếu', 'Soobin Hoàng Sơn', 'Touliver']);
+  assert.deepEqual(splitArtists('Masew x Khoi Vu ft. Đạt G'), ['Masew', 'Khoi Vu', 'Đạt G']);
+  assert.deepEqual(splitArtists('Jack - J97'), ['Jack - J97']);
+  assert.deepEqual(splitArtists('Xuân Mai'), ['Xuân Mai']);
+});
+
+test('same-lyrics merge counts each extra singer once, ignoring accents and the row own singers', async () => {
+  const { collapseSameLyrics } = await import('../lib/lyrics.mjs');
+  const l = 'Chỉ là nỗi nhớ mãi đứng sau cuộc tình đã lỡ';
+  const rows = [{ a: 'Quang Hà', l }, { a: 'Quang Ha', l }, { a: 'Hoài Lâm, Quang Hà', l }, { a: 'ThienHi', l }, { a: 'Hoai Lam', l }];
+  const [kept] = collapseSameLyrics(rows, () => 'Hoa Nở Không Màu', r => r.a, r => r.l);
+  assert.deepEqual(kept.others, ['Hoài Lâm', 'ThienHi']);
+});
