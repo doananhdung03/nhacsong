@@ -1,4 +1,4 @@
-/* Palette shared with dashboard-review: canvas/paper/ink, blue accent, purple for small marks. */
+/* Palette shared with dashboard-review: canvas/paper/ink, blue accent, purple for small icons. */
 :root {
   --bg: #F8F9FF; --surface: #FFFFFF; --sheen: #EDF3FF;
   --accent: #004AC6; --accent-strong: #10233F; --rose: #6658C8;
@@ -54,13 +54,11 @@ h1::after { content: ''; display: block; width: 72px; height: 3px; margin-top: 1
 .result:hover { background: var(--surface); }
 .result.selected { background: var(--surface); box-shadow: inset 4px 0 var(--accent); }
 .result > strong { font-size: 24px; font-weight: 800; }
-.result .artist { color: var(--muted); font-size: 15px; text-align: right; }
+.result .artist { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--muted); font-size: 15px; text-align: right; }
+.result .artist svg { flex: none; color: var(--rose); }
 .result .lyric-preview { grid-column: 1 / -1; font-size: 15px; color: #44546D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
 .result .meta { grid-column: 1 / -1; display: flex; gap: 14px; font-size: 13px; color: var(--muted); }
 .result .meta:empty { display: none; }
-.result.catalog { grid-template-columns: 1fr auto 10px; }
-/* purple diamond: song is in the Hồng Lâm list */
-.result .mark { width: 9px; height: 9px; background: var(--rose); transform: rotate(45deg); align-self: center; }
 .group-label { margin: 0; padding: 18px 16px 8px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); }
 .empty { color: var(--muted); font-size: 15px; margin: 18px 16px; }
 
@@ -90,9 +88,7 @@ footer .page-width { display: flex; justify-content: space-between; gap: 20px; p
   #query { height: 68px; padding: 10px 16px; font-size: 28px; }
   #query::placeholder { font-size: 20px; }
   .result { grid-template-columns: 1fr; padding-inline: 4px; }
-  .result.catalog { grid-template-columns: 1fr 10px; }
-  .result .artist { text-align: left; grid-row: 2; }
-  .result.catalog .mark { grid-column: 2; grid-row: 1; }
+  .result .artist { justify-content: flex-start; text-align: left; grid-row: 2; }
   .result > strong { font-size: 21px; }
   .reader { padding: 18px; }
   footer .page-width { flex-direction: column; gap: 6px; }
@@ -139,4 +135,31 @@ html:has(#presentation[open]) { overflow: hidden; } /* lock page scroll behind t
   .slide-bottom { grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
   .slide-navigation { grid-column: 1 / -1; grid-row: 1; }
   .slide-theme { gap: 8px; }
+}
+
+/* Admin */
+.admin h1 { font-size: 34px; }
+.admin-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.admin-head span { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+.admin-login, .admin-form { display: grid; gap: 14px; margin-top: 28px; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.admin-form { grid-template-columns: 1fr 1fr; }
+.admin-form .wide { grid-column: 1 / -1; }
+.admin label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.admin small { font-weight: 400; color: var(--muted); }
+.admin input, .admin textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); }
+.admin textarea { resize: vertical; line-height: 1.7; }
+.admin input:focus, .admin textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #004AC633; }
+.admin #status { min-height: 1.6em; }
+.admin-filter { display: flex; align-items: center; gap: 14px; margin-top: 12px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.admin-list { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.admin-list li { display: grid; grid-template-columns: 1fr 1fr auto auto auto; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.admin-list strong { font-weight: 600; overflow-wrap: anywhere; }
+.admin-list span { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.admin-list .tag { font-size: 12px; color: var(--rose); }
+.admin-list button { padding: 6px 12px; font-size: 13px; }
+@media (max-width: 600px) {
+  .admin-form { grid-template-columns: 1fr; padding: 16px; }
+  .admin-list li { grid-template-columns: 1fr auto auto; }
+  .admin-list li > span:first-of-type { grid-column: 1; grid-row: 2; }
+  .admin-list .tag { display: none; }
 }

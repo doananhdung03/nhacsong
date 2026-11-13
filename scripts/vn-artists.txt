@@ -1,0 +1,394 @@
+# Vietnamese artists used to harvest the song catalog from LRCLIB (one per line).
+# V-pop
+Sơn Tùng M-TP
+Mỹ Tâm
+Hà Anh Tuấn
+Đen
+Đen Vâu
+Jack
+J97
+K-ICM
+Soobin Hoàng Sơn
+Đức Phúc
+Erik
+Hòa Minzy
+Hoàng Thùy Linh
+Bích Phương
+Văn Mai Hương
+Noo Phước Thịnh
+Đông Nhi
+Ông Cao Thắng
+Min
+Chi Pu
+Hương Tràm
+Hương Ly
+Trúc Nhân
+Vũ Cát Tường
+Bùi Anh Tuấn
+Trịnh Thăng Bình
+Hồ Ngọc Hà
+Đàm Vĩnh Hưng
+Lam Trường
+Đan Trường
+Cẩm Ly
+Lệ Quyên
+Quang Dũng
+Bằng Kiều
+Phan Mạnh Quỳnh
+Vũ
+Thịnh Suy
+Ngọt
+Chillies
+Da LAB
+Hoàng Dũng
+Grey D
+Tlinh
+MONO
+Amee
+Orange
+Juky San
+Hiền Hồ
+Chi Dân
+Châu Khải Phong
+Lâm Chấn Khang
+Khắc Việt
+Khánh Phương
+Hồ Quang Hiếu
+Lương Bích Hữu
+Wanbi Tuấn Anh
+Khổng Tú Quỳnh
+Ưng Hoàng Phúc
+Phạm Quỳnh Anh
+Mr. Siro
+Only C
+Karik
+Binz
+Rhymastic
+JustaTee
+Suboi
+Wowy
+Hieuthuhai
+HIEUTHUHAI
+Negav
+Low G
+MCK
+RPT MCK
+Obito
+Andree Right Hand
+B Ray
+Masew
+Huỳnh James
+Pjnboys
+Double2T
+Quân A.P
+Đinh Tùng Huy
+Tăng Duy Tân
+Phát Hồ
+Nguyễn Trần Trung Quân
+Vương Anh Tú
+Lou Hoàng
+Trung Quân Idol
+Hoàng Yến Chibi
+Thùy Chi
+Miu Lê
+Bảo Anh
+Lưu Hương Giang
+Mai Tiến Dũng
+Đạt G
+Du Uyên
+Kiều Chi
+Hoài Lâm
+Nguyên Hà
+Thanh Hà
+Hồ Quỳnh Hương
+Uyên Linh
+Văn Mai Hương
+Hà Nhi
+Thu Minh
+Thanh Lam
+Hồng Nhung
+Mỹ Linh
+Trần Thu Hà
+Tùng Dương
+Lê Hiếu
+Hồ Trung Dũng
+Đức Tuấn
+Quang Hà
+Lý Hải
+Phương Thanh
+Minh Tuyết
+Lâm Hùng
+Ưng Đại Vệ
+Ngô Kiến Huy
+Isaac
+Will
+Khởi My
+Kelvin Khánh
+Yến Trang
+Bảo Thy
+Đông Hùng
+Tuấn Hưng
+Nguyễn Phi Hùng
+Duy Mạnh
+Akira Phan
+Lương Gia Huy
+Thái Tuyết Trâm
+Mai Diệu Ly
+Nguyễn Đình Vũ
+Anh Tú
+Lyly
+LyLy
+Văn Mai Hương
+Phương Ly
+Tóc Tiên
+Đông Nhi
+Ali Hoàng Dương
+Dương Hoàng Yến
+Lân Nhã
+Trương Thảo Nhi
+Myra Trần
+Bùi Lan Hương
+Ngọt
+Cá Hồi Hoang
+Thịnh Suy
+Vũ Thanh Vân
+Lê Bảo Bình
+Nal
+Freak D
+Thương Võ
+Hamlet Trương
+Trịnh Đình Quang
+Nhật Phong
+Kha
+Chu Thúy Quỳnh
+Quang Hùng MasterD
+Anh Rồng
+W/n
+Shiki
+Wren Evans
+Vũ Phụng Tiên
+Hoàng Tôn
+Kay Trần
+Emcee L
+Ân Ngờ
+Dick
+Lil Wuyn
+Bray
+Hà Lê
+Mr.A
+Yanbi
+Lynk Lee
+Xesi
+Ngô Lan Hương
+Lena
+Anh Khang
+Nguyễn Hữu Kha
+Vicky Nhung
+Lân Nhã
+Hứa Kim Tuyền
+Dương Edward
+Long Nón Lá
+Hoàng Hải
+Lê Thiện Hiếu
+Trang
+Thắng
+Tiên Tiên
+Kimmese
+Bảo Uyên
+Phương Mỹ Chi
+Hoàng Duyên
+Nguyễn Thạc Bảo Ngọc
+Myra
+# Bolero, trữ tình, hải ngoại
+Như Quỳnh
+Đan Nguyên
+Quang Lê
+Mạnh Quỳnh
+Phi Nhung
+Trường Vũ
+Tuấn Vũ
+Ngọc Sơn
+Chế Linh
+Duy Khánh
+Hương Lan
+Thanh Tuyền
+Giao Linh
+Phương Mỹ Chi
+Tố My
+Dương Hồng Loan
+Lưu Ánh Loan
+Mạnh Đình
+Hoàng Châu
+Lê Sang
+Trường Sơn
+Quang Bình
+Lê Minh Trung
+Hà Thanh Xuân
+Lâm Bảo Ngọc
+Tuấn Ngọc
+Khánh Ly
+Lệ Thu
+Elvis Phương
+Ngọc Lan
+Ý Lan
+Ánh Tuyết
+Kim Anh
+Hương Thủy
+Diễm Liên
+Mai Thiên Vân
+Phương Hồng Quế
+Thanh Lan
+Hoàng Oanh
+Sơn Tuyền
+Hà Phương
+Trizzie Phương Trinh
+Băng Tâm
+Hạ Vy
+Thùy Dương
+Nguyễn Hưng
+Lam Anh
+Phương Diễm Hạnh
+Kim Thư
+Tâm Đoan
+Châu Ngọc Tiên
+Ngọc Hạ
+Mỹ Huyền
+Hồng Ngọc
+Lâm Thúy Vân
+Cardin
+Như Mai
+Thiên Kim
+Hoàng Lan
+Thu Phương
+Trần Thái Hòa
+Vũ Khanh
+Thái Châu
+Duy Quang
+Hồ Hoàng Yến
+Gia Huy
+Philip Huy
+Đàm Vĩnh Hưng
+Tâm Đoan
+Phương Thanh
+Cẩm Ly
+Hồng Phượng
+Hoài Lâm
+Lưu Chí Vỹ
+Huỳnh Nguyễn Công Bằng
+Lâm Minh Thảo
+Thiên Quang
+Quỳnh Trang
+Jang Mi
+Thiên Quang Quỳnh Trang
+Khưu Huy Vũ
+Saka Trương Tuyền
+Lương Gia Hùng
+Hồ Việt Trung
+Lâm Hùng
+Ngọc Hân
+Trúc Anh
+Huỳnh Thật
+Ngọc Kiều Oanh
+Chế Thanh
+Đông Đào
+Quốc Đại
+Lý Diệu Linh
+Vân Khánh
+Phạm Phương Thảo
+Thanh Thanh Hiền
+Anh Thơ
+Trọng Tấn
+Đăng Dương
+Việt Hoàn
+Ngọc Khuê
+Thu Hiền
+Trung Đức
+Quang Linh
+Thái Bảo
+Lê Dung
+Tân Nhàn
+Đông Dương
+Hoàng Hiệp
+Kim Tiểu Long
+Vũ Linh
+Phi Nhung
+Mạnh Quỳnh
+Hồng Đào
+Ngọc Sơn
+Châu Gia Kiệt
+Khánh Bình
+Thúy Nga
+# Composers and classic catalog (artist field often holds composer)
+Trịnh Công Sơn
+Văn Cao
+Phạm Duy
+Ngô Thụy Miên
+Từ Công Phụng
+Vũ Thành An
+Lam Phương
+Ngọc Lễ
+Nguyễn Ánh 9
+Đức Huy
+Trần Tiến
+Thanh Tùng
+Phú Quang
+Nguyễn Nhất Huy
+Bảo Chấn
+Quốc Bảo
+Huy Tuấn
+Võ Thiện Thanh
+Dương Thụ
+Trần Quang Lộc
+Vinh Sử
+Trúc Phương
+Hàn Châu
+Hoài An
+Vũ Thành Vinh
+Nguyễn Văn Chung
+Phạm Trưởng
+Dương Khắc Linh
+Châu Đăng Khoa
+Khắc Hưng
+Lưu Thiên Hương
+Nguyễn Hải Phong
+Tiên Cookie
+Nguyễn Văn Tý
+Hoàng Hiệp
+Phan Huỳnh Điểu
+Trịnh Nam Sơn
+Phạm Đình Chương
+Đoàn Chuẩn
+Hoàng Thi Thơ
+Lê Uyên Phương
+Anh Bằng
+Hoàng Trọng
+Song Ngọc
+Thái Thịnh
+Tô Thanh Tùng
+Minh Vy
+Đinh Mạnh Ninh
+# Groups and bands
+Bức Tường
+Microwave
+Ngũ Cung
+Hiền Hồ
+365daband
+MTV
+HKT
+V.Music
+Mắt Ngọc
+Hương Tràm
+Ngọt
+Lip B
+FB Boiz
+Uni5
+Monstar
+Da LAB
+The Cassette
+Cá Hồi Hoang
+Chillies
+Lộn Xộn Band
+Thái Đinh
+Kai Đinh
+Trang
+Vũ.

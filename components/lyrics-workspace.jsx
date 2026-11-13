@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { catalogSong, durationLabel, fold, normalizeSearch, plainText, rankTracks, searchCatalog, validTrack, vietnameseScore } from '../lib/lyrics.mjs';
-import { addSong, loadSongs } from '../lib/songs-db.mjs';
+import { catalogSong, durationLabel, fold, lyricPreview, normalizeSearch, plainText, rankTracks, searchCatalog, validTrack, vietnameseScore } from '../lib/lyrics.mjs';
+import { addSong, fillPreview, loadSongs, songLyrics } from '../lib/songs-db.mjs';
 import Presentation from './presentation';
 import useAutoScroll from './use-auto-scroll';
 
@@ -18,12 +18,25 @@ async function lrclibSearch(text, signal) {
   if (!Array.isArray(data)) throw new Error('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
   return data.filter(validTrack);
 }
+// Lyrics for a catalog song: hand-entered (Supabase) first, else the best LRCLIB match by title, preferring the same artist.
+async function resolveSong(song, signal) {
+  const stored = await songLyrics(song.key).catch(() => null);
+  // Negative id keeps hand-entered songs apart from LRCLIB ids (used by saved songs and selection).
+  if (stored) return { id: -stored.id, trackName: song.title, artistName: song.artist, plainLyrics: stored.lyrics };
+  const rows = await lrclibSearch(`${song.title} ${song.artist}`, signal), artist = fold(song.artist);
+  // Prefer a same-artist version with lyrics; filter before ranking because rankTracks dedupes title|artist.
+  const [best] = rankTracks(rows.filter(item => !item.instrumental && fold(item.artistName).includes(artist) && plainText(item)), song.title);
+  return best || rankTracks(rows, song.title)[0] || null;
+}
+const previewCount = 5; // keeps LRCLIB calls per search low (rate limit ~90/min)
+// Person icon marks the artist/author line in result rows.
+const Artist = ({ name }) => <span className="artist"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="5" r="3" fill="currentColor" /><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5z" fill="currentColor" /></svg><span className="sr-only">Ca sĩ: </span>{name}</span>;
 const errorMessage = error => error.name === 'AbortError' ? 'Kết nối quá lâu. Vui lòng tìm lại.' : error instanceof TypeError ? 'Không kết nối được nguồn lời. Kiểm tra mạng rồi thử lại.' : error.message;
 
 export default function LyricsWorkspace() {
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
   const [current, setCurrent] = useState(null), [savedView, setSavedView] = useState(false);
-  const [catalog, setCatalog] = useState([]);
+  const [catalog, setCatalog] = useState([]), [resolved, setResolved] = useState({}); // song key -> track | null
   const [loading, setLoading] = useState(false), [status, setStatus] = useState(idleStatus);
   const [size, setSize] = useState(24), [speed, setSpeed] = useState(25), [presenting, setPresenting] = useState(false);
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
@@ -66,6 +79,14 @@ export default function LyricsWorkspace() {
       if (requestId !== serial.current) return;
       const tracks = rankTracks(data, text); setResults(tracks);
       setStatus(tracks.length ? `${tracks.length} bản thu cho “${text}” · Chọn bản phù hợp với bạn` : `Chưa tìm thấy “${text}”. Thử tên không dấu hoặc thêm tên ca sĩ.`);
+      // Lyric previews for the top catalog matches, one at a time; failures (e.g. 429) just leave no preview.
+      setLoading(false);
+      for (const song of searchCatalog(catalog, text, previewCount)) {
+        if (requestId !== serial.current) return;
+        if (song.preview || song.key in resolved) continue; // stored previews need no LRCLIB call
+        const track = await resolveSong(song, request.signal).catch(() => undefined);
+        if (track !== undefined && requestId === serial.current) setResolved(map => ({ ...map, [song.key]: track }));
+      }
     } catch (error) {
       if (requestId !== serial.current) return;
       setResults([]);
@@ -80,10 +101,10 @@ export default function LyricsWorkspace() {
     controller.current = request;
     const timeout = setTimeout(() => request.abort(), 20000);
     try {
-      const ranked = rankTracks(await lrclibSearch(`${song.title} ${song.artist}`, request.signal), song.title);
-      const artist = fold(song.artist);
-      const track = ranked.find(item => fold(item.artistName).includes(artist)) || ranked[0];
+      const track = song.key in resolved ? resolved[song.key] : await resolveSong(song, request.signal);
       if (requestId !== serial.current) return;
+      setResolved(map => ({ ...map, [song.key]: track }));
+      savePreview(song, track);
       if (track) { setStatus(`Đã mở “${track.trackName}”.`); selectTrack(track, false); }
       else setStatus(`LRCLIB chưa có lời cho “${song.title}”.`);
     } catch (error) {
@@ -96,8 +117,17 @@ export default function LyricsWorkspace() {
     // Auto-collect only likely Vietnamese songs (accented title or Vietnamese lyrics).
     if (vietnameseScore(track) < 3) return;
     const song = catalogSong(track.trackName, track.artistName);
-    if (!song.initials || catalog.some(item => item.key === song.key)) return;
-    addSong(song).then(() => setCatalog(list => list.some(item => item.key === song.key) ? list : [...list, song])).catch(() => {});
+    if (!song.initials) return;
+    const existing = catalog.find(item => item.key === song.key);
+    if (existing) { savePreview(existing, track); return; }
+    const row = { ...song, preview: lyricPreview(plainText(track)) || null };
+    addSong(row).then(() => setCatalog(list => list.some(item => item.key === row.key) ? list : [...list, row])).catch(() => {});
+  }
+  // Fill an empty catalog preview from an opened LRCLIB track (RLS only allows writing a null preview).
+  function savePreview(song, track) {
+    const preview = track && track.id > 0 ? lyricPreview(plainText(track)) : '';
+    if (song.preview || !preview || track.instrumental) return;
+    fillPreview(song.key, preview).then(() => setCatalog(list => list.map(item => item.key === song.key ? { ...item, preview } : item))).catch(() => {});
   }
   function selectTrack(track, fromLrclib = true) {
     if (fromLrclib) collect(track);
@@ -125,16 +155,16 @@ export default function LyricsWorkspace() {
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>
-          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}</strong><span className="artist">{song.artist}</span><span className="mark" title="Có trong danh sách bài"><span className="sr-only">Có trong danh sách bài</span></span></button>)}
+          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}</strong><Artist name={song.artist} />{(song.preview || song.key in resolved) && <span className="lyric-preview">{song.preview || (resolved[song.key] ? lyricPreview(plainText(resolved[song.key])) || 'Chưa có lời cho bản thu này.' : 'Chưa có lời trên LRCLIB. Có thể tự nhập ở trang quản lý.')}</span>}</button>)}
           {!savedView && matches.length > 0 && tracks.length > 0 && <p className="group-label">Thêm từ LRCLIB</p>}
-          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><span className="artist">{track.artistName}</span><span className="lyric-preview">{plainText(track).replace(/\s+/g, ' ').slice(0, 180) || 'Chưa có lời cho bản thu này.'}</span><span className="meta">{track.albumName && <span>Album {track.albumName}</span>}{durationLabel(track.duration) && <span>{durationLabel(track.duration)}</span>}</span></button>)}
+          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><Artist name={track.artistName} /><span className="lyric-preview">{lyricPreview(plainText(track)) || 'Chưa có lời cho bản thu này.'}</span><span className="meta">{track.albumName && <span>Album {track.albumName}</span>}{durationLabel(track.duration) && <span>{durationLabel(track.duration)}</span>}</span></button>)}
           {savedView && !tracks.length && <p className="empty">Chưa có bài đã lưu. Chọn một bài và nhấn “Lưu bài”.</p>}
         </div>
       </div>
       <section className="reader" ref={reader} aria-label="Lời bài hát" hidden={!current}>
         {current ? <div><div className="song-meta"><h2>{current.trackName}</h2><p>{current.artistName}</p>{current.albumName && <p id="song-album">Album: {current.albumName}</p>}<div className="song-actions"><button className="outline" onClick={toggleSaved}>{saved.some(track => track.id === current.id) ? '♥ Đã lưu · Bỏ lưu' : '♡ Lưu bài'}</button><button ref={presentButton} className="primary" onClick={() => { scroll.stop(); setPresenting(true); enterFullscreen(); }}>⛶ Trình chiếu</button></div></div>
           <div className="reader-toolbar"><label>Cỡ chữ <input type="range" min="18" max="52" value={size} onChange={event => setSize(Number(event.target.value))} /></label><button className="text-button" aria-pressed={scroll.running} onClick={scroll.toggle}>{scroll.running ? 'Ⅱ Dừng cuộn' : '▷ Tự cuộn'}</button><label>Tốc độ <input type="range" min="10" max="80" value={speed} onChange={event => setSpeed(Number(event.target.value))} /></label></div>
-          <div ref={viewport} id="lyrics-scroll" tabIndex={0} aria-label="Nội dung lời bài hát" onWheel={scroll.stop} onTouchStart={scroll.stop}><pre id="lyrics" style={{ fontSize: size }}>{plainText(current) || 'Chưa có lời cho bản thu này. Hãy chọn một kết quả khác.'}</pre></div><p className="source-note">Lời từ <a href="https://lrclib.net/" target="_blank" rel="noopener noreferrer">LRCLIB</a> · Có thể khác nhau giữa các bản thu</p>
+          <div ref={viewport} id="lyrics-scroll" tabIndex={0} aria-label="Nội dung lời bài hát" onWheel={scroll.stop} onTouchStart={scroll.stop}><pre id="lyrics" style={{ fontSize: size }}>{plainText(current) || 'Chưa có lời cho bản thu này. Hãy chọn một kết quả khác.'}</pre></div><p className="source-note">{current.id < 0 ? 'Lời do Hồng Lâm nhập' : <>Lời từ <a href="https://lrclib.net/" target="_blank" rel="noopener noreferrer">LRCLIB</a> · Có thể khác nhau giữa các bản thu</>}</p>
         </div> : null}
       </section>
     </section>
