@@ -1,45 +1,58 @@
-# Lời — Website lời bài hát
+# Nhạc Sống — Next.js
 
-Giao diện tiếng Việt gọi trực tiếp `https://lrclib.net/api/search` từ trình duyệt.
-Không cần API key, Docker, Rust, máy chủ riêng hoặc cài thư viện.
+Website lời bài hát tiếng Việt dùng Next.js App Router và React. Trình duyệt gọi
+trực tiếp API LRCLIB.net; không cần API key hoặc cơ sở dữ liệu riêng.
 
-## Chức năng
+## Chạy trên máy
 
-- Tìm bài theo tên hoặc ca sĩ, phân biệt nhiều bản thu.
-- Đọc lời, điều chỉnh cỡ chữ, tự cuộn theo tốc độ tùy chọn.
-- Trình chiếu nền tối, toàn màn hình trên trình duyệt hỗ trợ; cuộn tay hoặc tự cuộn.
-- Lưu bài trên trình duyệt và mở lại từ mục Bài đã lưu.
-- Hiển thị lỗi mạng, giới hạn lượt gọi và kết quả rỗng.
+Yêu cầu Node.js 20.9 trở lên.
 
-Đây là cuộn theo tốc độ do người dùng chọn, chưa tự đồng bộ lời với âm thanh.
-Không có phát nhạc, hợp âm hoặc dữ liệu tone. Không tự tải bài khi mở trang.
+```sh
+npm ci
+npm run dev
+```
 
-## Đưa lên Vercel
+Mở http://localhost:3000. Chạy bản production bằng `npm run build` rồi `npm start`.
 
-1. Repository giao diện: https://github.com/doananhdung03/nhacsong.
-2. Vercel → Add New → Project → chọn `doananhdung03/nhacsong`.
-3. Framework Preset: **Other**. Root Directory là thư mục chứa `vercel.json`.
-4. Output Directory: **public**. Không cần Build Command, Install Command hoặc biến môi trường.
-5. Deploy. File `vercel.json` đã chứa cấu hình tương ứng và các header bảo vệ.
+## Cấu trúc
 
-Không chọn repo Rust `lrclib` làm thư mục triển khai giao diện.
-Nếu dùng Vercel CLI đã đăng nhập, chạy `vercel --prod` trong thư mục này.
+- `app/`: trang chủ, bố cục, metadata và CSS.
+- `components/`: tìm kiếm, lưu bài, đọc lời, trình chiếu và tự cuộn bằng React.
+- `lib/lyrics.mjs`: xử lý lời và kiểm tra dữ liệu API.
+- `tests/`: kiểm tra xử lý lời và các luồng tương tác trong trình duyệt.
+
+Bài đã lưu tiếp tục dùng khóa `loi.saved.v1`, tương thích bản giao diện trước.
+Dữ liệu chỉ ở trình duyệt hiện tại, không đồng bộ tài khoản. Đổi tên miền hoặc
+trình duyệt sẽ không tự chuyển bài đã lưu.
+
+## Vercel
+
+Repository: https://github.com/doananhdung03/nhacsong
+
+Import repo với Framework Preset **Next.js**, Root Directory là thư mục gốc.
+Cấu hình `vercel.json` dùng `npm ci`, `npm run build` và output `.next`.
+Nếu dự án Vercel trước đây dùng Other/public, đổi preset sang Next.js và bỏ
+các thiết lập ghi đè cũ. Không cần biến môi trường.
 
 ## Kiểm tra
 
 ```sh
 npm test
-node --check public/app.js
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Để xem thử, phục vụ thư mục `public` bằng một HTTP server tĩnh; không mở bằng
-`file://` vì trang dùng JavaScript modules. Mã nguồn không cần bước build.
+Kiểm tra trình duyệt dùng phản hồi API giả lập để không phụ thuộc dịch vụ ngoài.
+Next.js cần script nội tuyến để khởi tạo trang; CSP hiện cho phép inline script
+và chỉ mở kết nối API tới LRCLIB (thêm WebSocket cho phát triển tại máy).
 
-## Lưu ý vận hành
+## Chức năng và giới hạn
 
-Bài đã lưu chỉ ở localStorage của thiết bị/trình duyệt hiện tại, không đồng bộ tài khoản.
-API có thể giới hạn truy cập và không đảm bảo có mọi bài tiếng Việt. Thử lại sau khi gặp 429.
-Dữ liệu API được hiển thị như văn bản, không chèn HTML từ bên ngoài.
-Quyền sử dụng lời bài hát phải được kiểm tra riêng trước khi kinh doanh.
+Tìm bài, chọn bản thu, lưu/bỏ lưu, chỉnh cỡ chữ, cuộn tay hoặc tự cuộn,
+trình chiếu nền tối, hỗ trợ toàn màn hình khi trình duyệt cho phép.
+Phím Space bật/dừng cuộn, ↑ ↓ điều chỉnh vị trí, Esc đóng trình chiếu.
 
-Chưa triển khai lên tài khoản Vercel; nhập repository trên vào tài khoản Vercel của bạn.
+Cuộn theo tốc độ do người dùng chọn, chưa đồng bộ với âm thanh. Không có phát
+nhạc, hợp âm hoặc tone. API có thể thiếu bài hoặc giới hạn lượt gọi.
+Quyền sử dụng lời bài hát cần kiểm tra riêng trước khi kinh doanh.
