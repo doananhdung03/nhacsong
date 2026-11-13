@@ -1,0 +1,11 @@
+{
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": null,
+  "outputDirectory": "public",
+  "headers": [{ "source": "/(.*)", "headers": [
+    { "key": "X-Content-Type-Options", "value": "nosniff" },
+    { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+    { "key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https://lrclib.net; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" }
+  ]}]
+}
