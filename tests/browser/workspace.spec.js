@@ -145,7 +145,7 @@ test('simple search layout clears results and returns focus to the input', async
     return route.fulfill({json: [song]});
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', {name:'LỜI NHẠC SỐNG', exact:true})).toBeVisible();
+  await expect(page.getByRole('heading', {name:'ÂM THANH NHẠC SỐNG HỒNG LÂM', exact:true})).toBeVisible();
   await expect(page.getByRole('region', {name:'Lời bài hát', exact:true})).toHaveCount(0);
   await page.getByRole('searchbox').fill('Bài');
   await expect(page.locator('.result')).toHaveCount(1);

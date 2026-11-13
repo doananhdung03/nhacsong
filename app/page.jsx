@@ -4,7 +4,7 @@ export default function Home() {
   return <>
     <header className="topbar"><div className="page-width"><a href="/" className="brand">NHẠC SỐNG</a><span>Tìm lời & trình chiếu</span></div></header>
     <main>
-      <h1>LỜI NHẠC SỐNG</h1>
+      <h1>ÂM THANH NHẠC SỐNG HỒNG LÂM</h1>
       <p className="notice">Tìm lời bài hát và trình chiếu chữ lớn dành cho buổi biểu diễn.</p>
       <LyricsWorkspace />
     </main>

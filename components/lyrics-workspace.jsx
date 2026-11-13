@@ -1,15 +1,28 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { durationLabel, normalizeSearch, plainText, prioritizeVietnamese, validTrack } from '../lib/lyrics.mjs';
+import { catalogSong, durationLabel, normalizeSearch, plainText, rankTracks, searchCatalog, validTrack, vietnameseScore } from '../lib/lyrics.mjs';
+import { addSong, loadSongs } from '../lib/songs-db.mjs';
 import Presentation from './presentation';
 import useAutoScroll from './use-auto-scroll';
 
 const storageKey = 'loi.saved.v1';
 
+async function lrclibSearch(text, signal) {
+  const url = new URL('https://lrclib.net/api/search'); url.searchParams.set('q', text);
+  const response = await fetch(url, { signal, headers: { 'Lrclib-Client': 'LoiWeb/2.0' } });
+  if (response.status === 429) throw new Error('Nguồn lời đang giới hạn lượt tìm. Vui lòng thử lại sau một lúc.');
+  if (!response.ok) throw new Error('Nguồn lời tạm thời chưa phản hồi. Vui lòng thử lại.');
+  const data = await response.json();
+  if (!Array.isArray(data)) throw new Error('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
+  return data.filter(validTrack);
+}
+const errorMessage = error => error.name === 'AbortError' ? 'Kết nối quá lâu. Vui lòng tìm lại.' : error instanceof TypeError ? 'Không kết nối được nguồn lời. Kiểm tra mạng rồi thử lại.' : error.message;
+
 export default function LyricsWorkspace() {
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
   const [current, setCurrent] = useState(null), [savedView, setSavedView] = useState(false);
+  const [catalog, setCatalog] = useState([]), [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false), [status, setStatus] = useState('Nhập từ 1 ký tự để tự động tìm bài hát.');
   const [size, setSize] = useState(24), [speed, setSpeed] = useState(25), [presenting, setPresenting] = useState(false);
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
@@ -21,6 +34,7 @@ export default function LyricsWorkspace() {
       const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
       if (Array.isArray(stored)) setSaved(stored.filter(validTrack));
     } catch { setStatus('Không đọc được bài đã lưu. Bạn vẫn có thể tìm và trình chiếu.'); }
+    loadSongs().then(setCatalog).catch(() => setStatus('Không tải được danh sách bài. Vẫn có thể tìm trên LRCLIB.'));
     return cancelSearch;
   }, []);
 
@@ -30,7 +44,7 @@ export default function LyricsWorkspace() {
     controller.current?.abort();
   }
   function changeQuery(text) {
-    cancelSearch(); setQuery(text); setSavedView(false); setLoading(false); setResults([]);
+    cancelSearch(); setQuery(text); setSavedView(false); setLoading(false); setResults([]); setMatches(searchCatalog(catalog, text));
     if (!normalizeSearch(text)) {
       setStatus('Nhập từ 1 ký tự để tự động tìm bài hát.');
       return;
@@ -46,24 +60,43 @@ export default function LyricsWorkspace() {
     controller.current = request;
     const timeout = setTimeout(() => request.abort(), 20000);
     try {
-      const url = new URL('https://lrclib.net/api/search'); url.searchParams.set('q', text);
-      const response = await fetch(url, { signal: request.signal, headers: { 'Lrclib-Client': 'LoiWeb/2.0' } });
-      if (response.status === 429) throw new Error('Nguồn lời đang giới hạn lượt tìm. Vui lòng thử lại sau một lúc.');
-      if (!response.ok) throw new Error('Nguồn lời tạm thời chưa phản hồi. Vui lòng thử lại.');
-      const data = await response.json();
-      if (!Array.isArray(data)) throw new Error('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
+      const data = await lrclibSearch(text, request.signal);
       if (requestId !== serial.current) return;
-      const tracks = prioritizeVietnamese(data.filter(validTrack)); setResults(tracks);
+      const tracks = rankTracks(data, text); setResults(tracks);
       setStatus(tracks.length ? `${tracks.length} bản thu cho “${text}” · Chọn bản phù hợp với bạn` : `Chưa tìm thấy “${text}”. Thử tên không dấu hoặc thêm tên ca sĩ.`);
     } catch (error) {
       if (requestId !== serial.current) return;
       setResults([]);
-      setStatus(error.name === 'AbortError' ? 'Kết nối quá lâu. Vui lòng tìm lại.' : error instanceof TypeError ? 'Không kết nối được nguồn lời. Kiểm tra mạng rồi thử lại.' : error.message);
+      setStatus(errorMessage(error));
     } finally {
       clearTimeout(timeout); if (requestId === serial.current) setLoading(false);
     }
   }
-  function selectTrack(track) {
+  async function openSong(song) {
+    cancelSearch(); setLoading(true); setStatus(`Đang lấy lời “${song.title}”…`);
+    const request = new AbortController(), requestId = ++serial.current;
+    controller.current = request;
+    const timeout = setTimeout(() => request.abort(), 20000);
+    try {
+      const [track] = rankTracks(await lrclibSearch(`${song.title} ${song.artist}`, request.signal), song.title);
+      if (requestId !== serial.current) return;
+      if (track) { setStatus(`Đã mở “${track.trackName}”.`); selectTrack(track, false); }
+      else setStatus(`LRCLIB chưa có lời cho “${song.title}”.`);
+    } catch (error) {
+      if (requestId === serial.current) setStatus(errorMessage(error));
+    } finally {
+      clearTimeout(timeout); if (requestId === serial.current) setLoading(false);
+    }
+  }
+  function collect(track) {
+    // Auto-collect only likely Vietnamese songs (accented title or Vietnamese lyrics).
+    if (vietnameseScore(track) < 3) return;
+    const song = catalogSong(track.trackName, track.artistName);
+    if (!song.initials || catalog.some(item => item.key === song.key)) return;
+    addSong(song).then(() => setCatalog(list => list.some(item => item.key === song.key) ? list : [...list, song])).catch(() => {});
+  }
+  function selectTrack(track, fromLrclib = true) {
+    if (fromLrclib) collect(track);
     scroll.stop(); setCurrent(track); setPresenting(true);
     enterFullscreen();
     if (viewport.current) viewport.current.scrollTop = 0;
@@ -87,6 +120,7 @@ export default function LyricsWorkspace() {
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>
+          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}</strong><span><b>Ca sĩ:</b> {song.artist}</span><span className="duration">Trong danh sách bài</span></button>)}
           {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><span className="lyric-preview">{plainText(track).replace(/\s+/g, ' ').slice(0, 180) || 'Chưa có lời cho bản thu này.'}</span><span><b>Ca sĩ:</b> {track.artistName}</span>{track.albumName && <span><b>Album:</b> {track.albumName}</span>}{durationLabel(track.duration) && <span className="duration">Thời lượng: {durationLabel(track.duration)}</span>}</button>)}
           {savedView && !tracks.length && <p className="empty">Chưa có bài đã lưu. Chọn một bài và nhấn “Lưu bài”.</p>}
         </div>

@@ -64,9 +64,10 @@ footer .page-width { display: flex; justify-content: space-between; gap: 20px; p
   .present-hint { font-size: 10px; }
 }
 
-dialog#presentation { --slide-bg: #fff; --slide-fg: #222; --slide-muted: #666; border: 1px solid #555; padding: 0; margin: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: var(--slide-bg); color: var(--slide-fg); }
+dialog#presentation { --slide-bg: #fff; --slide-fg: #222; --slide-muted: #666; border: 1px solid #555; box-sizing: border-box; overflow: hidden; padding: 0; margin: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: var(--slide-bg); color: var(--slide-fg); }
 dialog#presentation[data-theme=dark] { --slide-bg: #111; --slide-fg: #f5f5f5; --slide-muted: #aaa; }
 #presentation[open] { display: flex; flex-direction: column; }
+html:has(#presentation[open]) { overflow: hidden; } /* lock page scroll behind the fullscreen slide */
 #presentation::backdrop { background: #111; }
 .slide-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 16px 20px; }
 .slide-title { font-size: 14px; color: var(--slide-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

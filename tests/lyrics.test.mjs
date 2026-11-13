@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { plainText, durationLabel, validTrack, lyricSections, normalizeSearch, prioritizeVietnamese } from '../lib/lyrics.mjs';
+import { plainText, durationLabel, validTrack, lyricSections, normalizeSearch, rankTracks, catalogSong, searchCatalog } from '../lib/lyrics.mjs';
 test('LRC fallback removes multiple timestamps and metadata, preserves Vietnamese and stanza breaks', () => {
   assert.equal(plainText({syncedLyrics:'[ar:Ca sĩ]\n[00:01.20][00:20.500] Dòng một\n\n[01:02]Dòng hai'}), 'Dòng một\n\nDòng hai');
   assert.equal(plainText({plainLyrics:' Lời gốc ',syncedLyrics:'[00:01]Khác'}), 'Lời gốc');
@@ -39,6 +39,25 @@ test('Vietnamese priority keeps all results and preserves ordering for equal sco
   const noAccents = {id:3,trackName:'Tinh yeu',artistName:'Singer',plainLyrics:'Anh yeu em trong long'};
   const secondForeign = {...foreign,id:4,trackName:'Another song'};
   const input = [foreign, vietnamese, noAccents, secondForeign];
-  assert.deepEqual(prioritizeVietnamese(input).map(track=>track.id), [2,3,1,4]);
+  assert.deepEqual(rankTracks(input).map(track=>track.id), [2,3,1,4]);
   assert.deepEqual(input.map(track=>track.id),[1,2,3,4]);
+});
+
+test('ranking puts exact title first, matches without accents, and removes duplicates', () => {
+  const loi = {id:1,trackName:'Lời Tạm Biệt',artistName:'Ca sĩ',plainLyrics:'Anh yêu em trong lòng'};
+  const aLoi = {id:2,trackName:'À Lôi',artistName:'Double2T',plainLyrics:'Lời'};
+  const aLoiCopy = {id:3,trackName:'à lôi',artistName:'double2t'};
+  const other = {id:4,trackName:'A Loi Remix',artistName:'DJ',plainLyrics:'x'};
+  assert.deepEqual(rankTracks([loi, other, aLoiCopy, aLoi], 'À lôi').map(t=>t.id), [2,4,1]);
+  assert.deepEqual(rankTracks([loi, other, aLoi], 'a loi').map(t=>t.id), [2,4,1]);
+});
+
+test('catalog matches initials and unaccented titles like "AL" -> À Lôi', () => {
+  const songs = [catalogSong('À Lôi', 'Double2T'), catalogSong('Áo Lụa Hà Đông', 'Ngô Thụy Miên'), catalogSong('Diễm Xưa', 'Trịnh Công Sơn'), catalogSong('Đi Để Trở Về', 'Soobin')];
+  assert.deepEqual(songs[0], { title:'À Lôi', artist:'Double2T', folded:'a loi', initials:'al', key:'a loi|double2t' });
+  assert.deepEqual(searchCatalog(songs, 'AL').map(s=>s.title), ['À Lôi', 'Áo Lụa Hà Đông']);
+  assert.deepEqual(searchCatalog(songs, 'diem').map(s=>s.title), ['Diễm Xưa']);
+  assert.deepEqual(searchCatalog(songs, 'đi để').map(s=>s.title), ['Đi Để Trở Về']);
+  assert.deepEqual(searchCatalog(songs, 'trinh').map(s=>s.title), ['Diễm Xưa']);
+  assert.deepEqual(searchCatalog(songs, '  '), []);
 });
