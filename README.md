@@ -49,6 +49,8 @@ và chỉ mở kết nối API tới LRCLIB (thêm WebSocket cho phát triển t
 
 ## Chức năng và giới hạn
 
+Tự động tìm từ 2 ký tự sau khi ngừng gõ 350 ms; Enter/nút tìm chạy ngay.
+Hủy tìm kiếm cũ khi thay đổi nội dung, chờ gõ xong dấu tiếng Việt trước khi tìm.
 Tìm bài, chọn bản thu, lưu/bỏ lưu, chỉnh cỡ chữ, cuộn tay hoặc tự cuộn,
 trình chiếu nền tối, hỗ trợ toàn màn hình khi trình duyệt cho phép.
 Phím Space bật/dừng cuộn, ↑ ↓ điều chỉnh vị trí, Esc đóng trình chiếu.

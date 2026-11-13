@@ -48,3 +48,55 @@ test('old saved songs survive migration, mobile page has no horizontal overflow'
   await expect(page.getByLabel('Nội dung lời bài hát')).toContainText('Dòng lời minh họa 1');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test('live search starts at two trimmed characters and debounces rapid typing', async ({ page }) => {
+  const queries = [];
+  await page.route('https://lrclib.net/api/search?**', route => {
+    queries.push(new URL(route.request().url()).searchParams.get('q'));
+    return route.fulfill({json: [song]});
+  });
+  await page.goto('/');
+  const input = page.getByRole('searchbox');
+  await input.fill(' a '); await page.waitForTimeout(450);
+  expect(queries).toEqual([]);
+  await input.fill('ab'); await input.fill('abc'); await input.fill('abcd');
+  await expect(page.locator('#status')).toContainText('1 bản thu');
+  expect(queries).toEqual(['abcd']);
+  await input.fill(''); await page.waitForTimeout(450);
+  await expect(page.locator('#status')).toContainText('Nhập từ 2 ký tự');
+  await expect(page.locator('.result')).toHaveCount(0);
+  expect(queries).toEqual(['abcd']);
+});
+
+test('submit cancels pending debounce and Vietnamese composition waits until finished', async ({ page }) => {
+  const queries = [];
+  await page.route('https://lrclib.net/api/search?**', route => {
+    queries.push(new URL(route.request().url()).searchParams.get('q'));
+    return route.fulfill({json: [song]});
+  });
+  await page.goto('/'); const input = page.getByRole('searchbox');
+  await input.fill('Diem'); await input.press('Enter');
+  await expect(page.locator('#status')).toContainText('1 bản thu');
+  await page.waitForTimeout(450); expect(queries).toEqual(['Diem']);
+  await input.dispatchEvent('compositionstart'); await input.fill('Diễm');
+  await page.waitForTimeout(450); expect(queries).toEqual(['Diem']);
+  await input.dispatchEvent('compositionend');
+  await expect.poll(() => queries).toEqual(['Diem', 'Diễm']);
+});
+
+test('editing cancels in-flight request before the next debounce runs', async ({ page }) => {
+  let releaseOld;
+  const oldResponse = new Promise(resolve => { releaseOld = resolve; });
+  await page.route('https://lrclib.net/api/search?**', async route => {
+    if (new URL(route.request().url()).searchParams.get('q') === 'cu') {
+      await oldResponse;
+      await route.fulfill({json: [song]}).catch(() => {});
+    } else await route.fulfill({json: []});
+  });
+  await page.goto('/'); const input = page.getByRole('searchbox');
+  await input.fill('cu'); await expect(page.locator('#status')).toContainText('Đang tìm');
+  await input.fill('m'); releaseOld(); await page.waitForTimeout(450);
+  await expect(page.locator('#status')).toContainText('Nhập từ 2 ký tự');
+  await expect(page.locator('.result')).toHaveCount(0);
+  await input.fill('moi'); await expect(page.locator('#status')).toContainText('Chưa tìm thấy');
+});

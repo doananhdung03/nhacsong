@@ -10,22 +10,37 @@ const storageKey = 'loi.saved.v1';
 export default function LyricsWorkspace() {
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
   const [current, setCurrent] = useState(null), [savedView, setSavedView] = useState(false);
-  const [loading, setLoading] = useState(false), [status, setStatus] = useState('Một bài hát hay đang chờ bạn tìm thấy.');
+  const [loading, setLoading] = useState(false), [status, setStatus] = useState('Nhập từ 2 ký tự để tự động tìm bài hát.');
   const [size, setSize] = useState(24), [speed, setSpeed] = useState(25), [presenting, setPresenting] = useState(false);
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
+  const debounce = useRef(null), composing = useRef(false);
   const scroll = useAutoScroll(viewport, speed);
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
       if (Array.isArray(stored)) setSaved(stored.filter(validTrack));
     } catch { setStatus('Không đọc được bài đã lưu. Bạn vẫn có thể tìm và trình chiếu.'); }
-    return () => { serial.current++; controller.current?.abort(); };
+    return cancelSearch;
   }, []);
 
-  async function search(text) {
-    text = text.trim(); if (!text) return;
-    setQuery(text); setSavedView(false); setLoading(true); setStatus(`Đang tìm “${text}”…`);
+  function cancelSearch() {
+    clearTimeout(debounce.current);
+    serial.current++;
     controller.current?.abort();
+  }
+  function changeQuery(text) {
+    cancelSearch(); setQuery(text); setSavedView(false); setLoading(false); setResults([]);
+    if (text.trim().length < 2) {
+      setStatus('Nhập từ 2 ký tự để tự động tìm bài hát.');
+      return;
+    }
+    setStatus(`Đang nhập “${text.trim()}”…`);
+    if (!composing.current) debounce.current = setTimeout(() => search(text), 350);
+  }
+  async function search(text) {
+    cancelSearch();
+    text = text.trim(); if (text.length < 2 || composing.current) return;
+    setQuery(text); setSavedView(false); setLoading(true); setStatus(`Đang tìm “${text}”…`);
     const request = new AbortController(), requestId = ++serial.current;
     controller.current = request;
     const timeout = setTimeout(() => request.abort(), 20000);
@@ -63,7 +78,7 @@ export default function LyricsWorkspace() {
   return <>
     <section className="workspace" aria-label="Thư viện lời bài hát">
       <div className="library">
-        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="eyebrow">HÔM NAY BẠN MUỐN HÁT GÌ?</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="query" type="search" maxLength={150} placeholder="Tên bài hát hoặc ca sĩ…" required autoComplete="off" value={query} onChange={event => setQuery(event.target.value)} /><button className="primary" type="submit" disabled={loading}>Tìm bài <span aria-hidden="true">↗</span></button></div></form>
+        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="eyebrow">HÔM NAY BẠN MUỐN HÁT GÌ?</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="query" type="search" minLength={2} maxLength={150} placeholder="Nhập từ 2 ký tự để tìm bài hoặc ca sĩ…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} /><button className="primary" type="submit" disabled={loading || query.trim().length < 2}>Tìm bài <span aria-hidden="true">↗</span></button></div></form>
         <div className="suggestions"><span>Thử tìm</span>{['Diễm xưa', 'Nối vòng tay lớn', 'Sơn Tùng M-TP'].map(text => <button key={text} onClick={() => search(text)}>{text}</button>)}</div>
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
