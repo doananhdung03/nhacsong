@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { catalogSong, durationLabel, normalizeSearch, plainText, rankTracks, searchCatalog, validTrack, vietnameseScore } from '../lib/lyrics.mjs';
+import { catalogSong, durationLabel, fold, normalizeSearch, plainText, rankTracks, searchCatalog, validTrack, vietnameseScore } from '../lib/lyrics.mjs';
 import { addSong, loadSongs } from '../lib/songs-db.mjs';
 import Presentation from './presentation';
 import useAutoScroll from './use-auto-scroll';
 
 const storageKey = 'loi.saved.v1';
+const idleStatus = 'Nhập từ 1 ký tự để tự động tìm bài hát.';
 
 async function lrclibSearch(text, signal) {
   const url = new URL('https://lrclib.net/api/search'); url.searchParams.set('q', text);
@@ -22,8 +23,8 @@ const errorMessage = error => error.name === 'AbortError' ? 'Kết nối quá l�
 export default function LyricsWorkspace() {
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
   const [current, setCurrent] = useState(null), [savedView, setSavedView] = useState(false);
-  const [catalog, setCatalog] = useState([]), [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(false), [status, setStatus] = useState('Nhập từ 1 ký tự để tự động tìm bài hát.');
+  const [catalog, setCatalog] = useState([]);
+  const [loading, setLoading] = useState(false), [status, setStatus] = useState(idleStatus);
   const [size, setSize] = useState(24), [speed, setSpeed] = useState(25), [presenting, setPresenting] = useState(false);
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
   const debounce = useRef(null), composing = useRef(false);
@@ -34,7 +35,8 @@ export default function LyricsWorkspace() {
       const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
       if (Array.isArray(stored)) setSaved(stored.filter(validTrack));
     } catch { setStatus('Không đọc được bài đã lưu. Bạn vẫn có thể tìm và trình chiếu.'); }
-    loadSongs().then(setCatalog).catch(() => setStatus('Không tải được danh sách bài. Vẫn có thể tìm trên LRCLIB.'));
+    // Only report a failed catalog load if no search has replaced the idle message yet.
+    loadSongs().then(setCatalog).catch(() => setStatus(text => text === idleStatus ? 'Không tải được danh sách bài. Vẫn có thể tìm trên LRCLIB.' : text));
     return cancelSearch;
   }, []);
 
@@ -44,9 +46,9 @@ export default function LyricsWorkspace() {
     controller.current?.abort();
   }
   function changeQuery(text) {
-    cancelSearch(); setQuery(text); setSavedView(false); setLoading(false); setResults([]); setMatches(searchCatalog(catalog, text));
+    cancelSearch(); setQuery(text); setSavedView(false); setLoading(false); setResults([]);
     if (!normalizeSearch(text)) {
-      setStatus('Nhập từ 1 ký tự để tự động tìm bài hát.');
+      setStatus(idleStatus);
       return;
     }
     setStatus(`Đang nhập “${text.trim()}”…`);
@@ -78,7 +80,9 @@ export default function LyricsWorkspace() {
     controller.current = request;
     const timeout = setTimeout(() => request.abort(), 20000);
     try {
-      const [track] = rankTracks(await lrclibSearch(`${song.title} ${song.artist}`, request.signal), song.title);
+      const ranked = rankTracks(await lrclibSearch(`${song.title} ${song.artist}`, request.signal), song.title);
+      const artist = fold(song.artist);
+      const track = ranked.find(item => fold(item.artistName).includes(artist)) || ranked[0];
       if (requestId !== serial.current) return;
       if (track) { setStatus(`Đã mở “${track.trackName}”.`); selectTrack(track, false); }
       else setStatus(`LRCLIB chưa có lời cho “${song.title}”.`);
@@ -113,6 +117,7 @@ export default function LyricsWorkspace() {
   }
   function closePresentation() { setPresenting(false); requestAnimationFrame(() => presentButton.current?.focus()); }
   const tracks = savedView ? saved : results;
+  const matches = searchCatalog(catalog, query); // derived, so it updates when the catalog finishes loading
   return <>
     <section className="workspace" aria-label="Thư viện lời bài hát">
       <div className="library">
@@ -120,8 +125,9 @@ export default function LyricsWorkspace() {
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>
-          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}</strong><span><b>Ca sĩ:</b> {song.artist}</span><span className="duration">Trong danh sách bài</span></button>)}
-          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><span className="lyric-preview">{plainText(track).replace(/\s+/g, ' ').slice(0, 180) || 'Chưa có lời cho bản thu này.'}</span><span><b>Ca sĩ:</b> {track.artistName}</span>{track.albumName && <span><b>Album:</b> {track.albumName}</span>}{durationLabel(track.duration) && <span className="duration">Thời lượng: {durationLabel(track.duration)}</span>}</button>)}
+          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}</strong><span className="artist">{song.artist}</span><span className="mark" title="Có trong danh sách bài"><span className="sr-only">Có trong danh sách bài</span></span></button>)}
+          {!savedView && matches.length > 0 && tracks.length > 0 && <p className="group-label">Thêm từ LRCLIB</p>}
+          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><span className="artist">{track.artistName}</span><span className="lyric-preview">{plainText(track).replace(/\s+/g, ' ').slice(0, 180) || 'Chưa có lời cho bản thu này.'}</span><span className="meta">{track.albumName && <span>Album {track.albumName}</span>}{durationLabel(track.duration) && <span>{durationLabel(track.duration)}</span>}</span></button>)}
           {savedView && !tracks.length && <p className="empty">Chưa có bài đã lưu. Chọn một bài và nhấn “Lưu bài”.</p>}
         </div>
       </div>

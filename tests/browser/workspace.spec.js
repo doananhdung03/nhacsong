@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 const song = { id: 1, trackName: 'Bài hát thử', artistName: 'Ca sĩ thử', albumName: 'Buổi diễn', duration: 200, plainLyrics: Array.from({length: 45}, (_, index) => `Dòng lời minh họa ${index + 1}`).join('\n'), syncedLyrics: null };
+// Never touch the real Supabase catalog from tests: empty list, and inserts are swallowed.
+test.beforeEach(async ({ page }) => {
+  await page.route('**/rest/v1/songs**', route => route.fulfill({ status: route.request().method() === 'POST' ? 201 : 200, json: [], headers: {'access-control-allow-origin':'*', 'access-control-allow-headers':'*', 'access-control-allow-methods':'*'} }));
+});
 async function searchSong(page, closePresentation = true) {
   await page.route('https://lrclib.net/api/search?**', route => route.fulfill({ json: [song], headers: {'access-control-allow-origin':'*'} }));
   await page.getByRole('searchbox').fill('Bài hát thử');
