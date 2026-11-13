@@ -14,6 +14,7 @@ export default function LyricsWorkspace() {
   const [size, setSize] = useState(24), [speed, setSpeed] = useState(25), [presenting, setPresenting] = useState(false);
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
   const debounce = useRef(null), composing = useRef(false);
+  const queryInput = useRef(null);
   const scroll = useAutoScroll(viewport, speed);
   useEffect(() => {
     try {
@@ -65,7 +66,7 @@ export default function LyricsWorkspace() {
   function selectTrack(track) {
     scroll.stop(); setCurrent(track);
     if (viewport.current) viewport.current.scrollTop = 0;
-    if (window.matchMedia('(max-width: 850px)').matches) reader.current.scrollIntoView({ block: 'start' });
+    requestAnimationFrame(() => reader.current?.scrollIntoView({ block: 'start' }));
   }
   function toggleSaved() {
     if (!current) return;
@@ -78,19 +79,19 @@ export default function LyricsWorkspace() {
   return <>
     <section className="workspace" aria-label="Thư viện lời bài hát">
       <div className="library">
-        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="eyebrow">HÔM NAY BẠN MUỐN HÁT GÌ?</label><div className="search-box"><span aria-hidden="true">⌕</span><input id="query" type="search" minLength={2} maxLength={150} placeholder="Nhập từ 2 ký tự để tìm bài hoặc ca sĩ…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} /><button className="primary" type="submit" disabled={loading || query.trim().length < 2}>Tìm bài <span aria-hidden="true">↗</span></button></div></form>
-        <div className="suggestions"><span>Thử tìm</span>{['Diễm xưa', 'Nối vòng tay lớn', 'Sơn Tùng M-TP'].map(text => <button key={text} onClick={() => search(text)}>{text}</button>)}</div>
+        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="search-label">Nhập tên bài hát hoặc ca sĩ. Tự động tìm từ 2 ký tự.</label><input ref={queryInput} id="query" type="search" minLength={2} maxLength={150} placeholder="Nhập tên bài hát…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} /><div className="search-actions"><button className="outline" type="submit" disabled={loading || query.trim().length < 2}>Tìm bài hát</button><button className="outline" type="button" onClick={() => { changeQuery(''); queryInput.current?.focus(); }}>Xóa từ khóa</button></div></form>
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>
-          {tracks.length ? tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><span className="song-icon">♪</span><span className="result-info"><strong>{track.trackName}</strong><small>{[track.artistName, durationLabel(track.duration)].filter(Boolean).join(' · ')}</small></span><span className="result-badge">{track.instrumental ? 'Không lời' : track.syncedLyrics ? 'Có mốc thời gian' : plainText(track) ? 'Lời bài hát' : 'Chưa có lời'}</span></button>) : <div className="empty"><span className="empty-icon">♫</span><h3>{savedView ? 'Giữ lại những bài bạn yêu' : 'Bắt đầu bằng một giai điệu quen'}</h3><p>{savedView ? 'Mở một bài và chọn “Lưu bài” để thêm vào đây.' : 'Tìm tên bài hoặc ca sĩ để khám phá các bản lời.'}</p></div>}
+          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><span className="lyric-preview">{plainText(track).replace(/\s+/g, ' ').slice(0, 180) || 'Chưa có lời cho bản thu này.'}</span><span><b>Ca sĩ:</b> {track.artistName}</span>{track.albumName && <span><b>Album:</b> {track.albumName}</span>}{durationLabel(track.duration) && <span className="duration">Thời lượng: {durationLabel(track.duration)}</span>}</button>)}
+          {savedView && !tracks.length && <p className="empty">Chưa có bài đã lưu. Chọn một bài và nhấn “Lưu bài”.</p>}
         </div>
       </div>
-      <section className="reader" ref={reader} aria-label="Lời bài hát"><div className="reader-heading"><span className="eyebrow">GÓC TRÌNH DIỄN</span><span className="reader-dot">●</span></div>
+      <section className="reader" ref={reader} aria-label="Lời bài hát" hidden={!current}>
         {current ? <div><div className="song-meta"><h2>{current.trackName}</h2><p>{current.artistName}</p>{current.albumName && <p id="song-album">Album: {current.albumName}</p>}<div className="song-actions"><button className="outline" onClick={toggleSaved}>{saved.some(track => track.id === current.id) ? '♥ Đã lưu · Bỏ lưu' : '♡ Lưu bài'}</button><button ref={presentButton} className="primary" onClick={() => { scroll.stop(); setPresenting(true); }}>⛶ Trình chiếu</button></div></div>
           <div className="reader-toolbar"><label>Cỡ chữ <input type="range" min="18" max="52" value={size} onChange={event => setSize(Number(event.target.value))} /></label><button className="text-button" aria-pressed={scroll.running} onClick={scroll.toggle}>{scroll.running ? 'Ⅱ Dừng cuộn' : '▷ Tự cuộn'}</button><label>Tốc độ <input type="range" min="10" max="80" value={speed} onChange={event => setSpeed(Number(event.target.value))} /></label></div>
           <div ref={viewport} id="lyrics-scroll" tabIndex={0} aria-label="Nội dung lời bài hát" onWheel={scroll.stop} onTouchStart={scroll.stop}><pre id="lyrics" style={{ fontSize: size }}>{plainText(current) || 'Chưa có lời cho bản thu này. Hãy chọn một kết quả khác.'}</pre></div><p className="source-note">Lời từ <a href="https://lrclib.net/" target="_blank" rel="noopener noreferrer">LRCLIB</a> · Có thể khác nhau giữa các bản thu</p>
-        </div> : <div className="reader-empty"><span>“</span><h2>Âm nhạc bắt đầu<br />từ những lời ca.</h2><p>Chọn một bài ở bên trái<br />để mở lời và bắt đầu trình chiếu.</p></div>}
+        </div> : null}
       </section>
     </section>
     {presenting && current && <Presentation track={current} onClose={closePresentation} />}

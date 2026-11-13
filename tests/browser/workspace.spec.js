@@ -100,3 +100,26 @@ test('editing cancels in-flight request before the next debounce runs', async ({
   await expect(page.locator('.result')).toHaveCount(0);
   await input.fill('moi'); await expect(page.locator('#status')).toContainText('Chưa tìm thấy');
 });
+
+test('simple search layout clears results and returns focus to the input', async ({ page }) => {
+  const queries = [];
+  await page.route('https://lrclib.net/api/search?**', route => {
+    queries.push(new URL(route.request().url()).searchParams.get('q'));
+    return route.fulfill({json: [song]});
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', {name:'LỜI NHẠC SỐNG', exact:true})).toBeVisible();
+  await expect(page.getByRole('region', {name:'Lời bài hát', exact:true})).toHaveCount(0);
+  await page.getByRole('searchbox').fill('Bài');
+  await expect(page.locator('.result')).toHaveCount(1);
+  await expect(page.locator('.lyric-preview')).toContainText('Dòng lời minh họa');
+  await page.screenshot({path:'test-results/simple-desktop.png', fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'test-results/simple-mobile.png', fullPage:true});
+  await page.getByRole('button', {name:'Xóa từ khóa'}).click();
+  await expect(page.getByRole('searchbox')).toHaveValue('');
+  await expect(page.getByRole('searchbox')).toBeFocused();
+  await expect(page.locator('.result')).toHaveCount(0);
+  await page.waitForTimeout(450);
+  expect(queries).toEqual(['Bài']);
+});
