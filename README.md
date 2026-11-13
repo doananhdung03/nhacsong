@@ -49,8 +49,11 @@ và chỉ mở kết nối API tới LRCLIB (thêm WebSocket cho phát triển t
 
 ## Chức năng và giới hạn
 
-Tự động tìm từ 2 ký tự sau khi ngừng gõ 350 ms; Enter/nút tìm chạy ngay.
+Tự động tìm từ 1 ký tự sau khi ngừng gõ 350 ms; Enter/nút tìm chạy ngay.
 Hủy tìm kiếm cũ khi thay đổi nội dung, chờ gõ xong dấu tiếng Việt trước khi tìm.
+Giữ nguyên khoảng trắng trong ô nhập; chỉ chuẩn hóa khoảng trắng khi gửi API.
+Ưu tiên kết quả có dấu hiệu tiếng Việt trong tên bài, ca sĩ và lời bài hát.
+Đây là nhận diện gần đúng vì API không có trường ngôn ngữ; các kết quả khác vẫn được giữ.
 Tìm bài, chọn bản thu, lưu/bỏ lưu, chỉnh cỡ chữ, cuộn tay hoặc tự cuộn,
 Nhấn vào bài để mở ngay trình chiếu toàn màn hình khi trình duyệt cho phép.
 Lời được chia theo đoạn trống, mỗi trang tối đa 4 dòng; dòng dài được ngắt thêm.

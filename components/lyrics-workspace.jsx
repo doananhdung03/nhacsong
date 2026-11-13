@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { durationLabel, plainText, validTrack } from '../lib/lyrics.mjs';
+import { durationLabel, normalizeSearch, plainText, prioritizeVietnamese, validTrack } from '../lib/lyrics.mjs';
 import Presentation from './presentation';
 import useAutoScroll from './use-auto-scroll';
 
@@ -10,7 +10,7 @@ const storageKey = 'loi.saved.v1';
 export default function LyricsWorkspace() {
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
   const [current, setCurrent] = useState(null), [savedView, setSavedView] = useState(false);
-  const [loading, setLoading] = useState(false), [status, setStatus] = useState('Nhập từ 2 ký tự để tự động tìm bài hát.');
+  const [loading, setLoading] = useState(false), [status, setStatus] = useState('Nhập từ 1 ký tự để tự động tìm bài hát.');
   const [size, setSize] = useState(24), [speed, setSpeed] = useState(25), [presenting, setPresenting] = useState(false);
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
   const debounce = useRef(null), composing = useRef(false);
@@ -31,8 +31,8 @@ export default function LyricsWorkspace() {
   }
   function changeQuery(text) {
     cancelSearch(); setQuery(text); setSavedView(false); setLoading(false); setResults([]);
-    if (text.trim().length < 2) {
-      setStatus('Nhập từ 2 ký tự để tự động tìm bài hát.');
+    if (!normalizeSearch(text)) {
+      setStatus('Nhập từ 1 ký tự để tự động tìm bài hát.');
       return;
     }
     setStatus(`Đang nhập “${text.trim()}”…`);
@@ -40,8 +40,8 @@ export default function LyricsWorkspace() {
   }
   async function search(text) {
     cancelSearch();
-    text = text.trim(); if (text.length < 2 || composing.current) return;
-    setQuery(text); setSavedView(false); setLoading(true); setStatus(`Đang tìm “${text}”…`);
+    text = normalizeSearch(text); if (!text || composing.current) return;
+    setSavedView(false); setLoading(true); setStatus(`Đang tìm “${text}”…`);
     const request = new AbortController(), requestId = ++serial.current;
     controller.current = request;
     const timeout = setTimeout(() => request.abort(), 20000);
@@ -53,7 +53,7 @@ export default function LyricsWorkspace() {
       const data = await response.json();
       if (!Array.isArray(data)) throw new Error('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
       if (requestId !== serial.current) return;
-      const tracks = data.filter(validTrack); setResults(tracks);
+      const tracks = prioritizeVietnamese(data.filter(validTrack)); setResults(tracks);
       setStatus(tracks.length ? `${tracks.length} bản thu cho “${text}” · Chọn bản phù hợp với bạn` : `Chưa tìm thấy “${text}”. Thử tên không dấu hoặc thêm tên ca sĩ.`);
     } catch (error) {
       if (requestId !== serial.current) return;
@@ -83,7 +83,7 @@ export default function LyricsWorkspace() {
   return <>
     <section className="workspace" aria-label="Thư viện lời bài hát">
       <div className="library">
-        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="search-label">Nhập tên bài hát hoặc ca sĩ. Tự động tìm từ 2 ký tự.</label><input ref={queryInput} id="query" type="search" minLength={2} maxLength={150} placeholder="Nhập tên bài hát…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} /><div className="search-actions"><button className="outline" type="submit" disabled={loading || query.trim().length < 2}>Tìm bài hát</button><button className="outline" type="button" onClick={() => { changeQuery(''); queryInput.current?.focus(); }}>Xóa từ khóa</button></div></form>
+        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="search-label">Nhập tên bài hát hoặc ca sĩ. Tự động tìm từ 1 ký tự.</label><input ref={queryInput} id="query" type="search" minLength={1} maxLength={150} placeholder="Nhập tên bài hát…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} /><div className="search-actions"><button className="outline" type="submit" disabled={loading || query.trim().length < 1}>Tìm bài hát</button><button className="outline" type="button" onClick={() => { changeQuery(''); queryInput.current?.focus(); }}>Xóa từ khóa</button></div></form>
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>

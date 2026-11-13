@@ -84,7 +84,7 @@ test('old saved songs survive migration, mobile page has no horizontal overflow'
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test('live search starts at two trimmed characters and debounces rapid typing', async ({ page }) => {
+test('live search starts at one character and debounces rapid typing', async ({ page }) => {
   const queries = [];
   await page.route('https://lrclib.net/api/search?**', route => {
     queries.push(new URL(route.request().url()).searchParams.get('q'));
@@ -92,15 +92,17 @@ test('live search starts at two trimmed characters and debounces rapid typing', 
   });
   await page.goto('/');
   const input = page.getByRole('searchbox');
-  await input.fill(' a '); await page.waitForTimeout(450);
+  await input.fill('   '); await page.waitForTimeout(450);
   expect(queries).toEqual([]);
+  await input.fill('a'); await expect(page.locator('#status')).toContainText('1 bản thu');
+  expect(queries).toEqual(['a']);
   await input.fill('ab'); await input.fill('abc'); await input.fill('abcd');
   await expect(page.locator('#status')).toContainText('1 bản thu');
-  expect(queries).toEqual(['abcd']);
+  expect(queries).toEqual(['a','abcd']);
   await input.fill(''); await page.waitForTimeout(450);
-  await expect(page.locator('#status')).toContainText('Nhập từ 2 ký tự');
+  await expect(page.locator('#status')).toContainText('Nhập từ 1 ký tự');
   await expect(page.locator('.result')).toHaveCount(0);
-  expect(queries).toEqual(['abcd']);
+  expect(queries).toEqual(['a','abcd']);
 });
 
 test('submit cancels pending debounce and Vietnamese composition waits until finished', async ({ page }) => {
@@ -130,8 +132,8 @@ test('editing cancels in-flight request before the next debounce runs', async ({
   });
   await page.goto('/'); const input = page.getByRole('searchbox');
   await input.fill('cu'); await expect(page.locator('#status')).toContainText('Đang tìm');
-  await input.fill('m'); releaseOld(); await page.waitForTimeout(450);
-  await expect(page.locator('#status')).toContainText('Nhập từ 2 ký tự');
+  await input.fill(''); releaseOld(); await page.waitForTimeout(450);
+  await expect(page.locator('#status')).toContainText('Nhập từ 1 ký tự');
   await expect(page.locator('.result')).toHaveCount(0);
   await input.fill('moi'); await expect(page.locator('#status')).toContainText('Chưa tìm thấy');
 });
@@ -157,4 +159,25 @@ test('simple search layout clears results and returns focus to the input', async
   await expect(page.locator('.result')).toHaveCount(0);
   await page.waitForTimeout(450);
   expect(queries).toEqual(['Bài']);
+});
+
+test('search preserves typed spaces and prioritizes Vietnamese results', async ({ page }) => {
+  const queries = [];
+  await page.route('https://lrclib.net/api/search?**', route => {
+    queries.push(new URL(route.request().url()).searchParams.get('q'));
+    return route.fulfill({json:[{...song,id:10,trackName:'Foreign song',artistName:'Artist',plainLyrics:'A song in English'},song]});
+  });
+  await page.goto('/'); const input = page.getByRole('searchbox');
+  await input.fill('Diễm ');
+  await expect(page.locator('#status')).toContainText('2 bản thu');
+  await expect(input).toHaveValue('Diễm ');
+  await input.pressSequentially('xưa');
+  await expect(page.locator('#status')).toContainText('2 bản thu cho “Diễm xưa”');
+  await expect(input).toHaveValue('Diễm xưa');
+  expect(queries).toEqual(['Diễm','Diễm xưa']);
+  await expect(page.locator('.result strong').first()).toHaveText('Bài hát thử');
+  await input.fill('  Diễm   xưa  ');
+  await expect.poll(()=>queries.length).toBe(3);
+  expect(queries[2]).toBe('Diễm xưa');
+  await expect(input).toHaveValue('  Diễm   xưa  ');
 });
