@@ -59,6 +59,26 @@ test('Zing failure does not hide LRCLIB results',async({page})=>{
   await page.goto('/');await searchSong(page);
   await expect(page.locator('#lyrics')).toContainText('Dòng lời minh họa');
 });
+test('voice search fills the box and searches with the final phrase', async ({ page }) => {
+  // Fake Web Speech API: speaks an interim then a final result.
+  await page.addInitScript(() => {
+    window.webkitSpeechRecognition = class {
+      start() { setTimeout(() => {
+        const result = (text, isFinal) => Object.assign([{ transcript: text }], { isFinal });
+        this.onresult({ results: [result('Bài hát', false)] });
+        this.onresult({ results: [result('Bài hát thử.', true)] }); // recognisers add punctuation
+        this.onend();
+      }, 50); }
+      stop() { this.onend(); } abort() {}
+    };
+  });
+  await page.route('https://lrclib.net/api/search?**', route => route.fulfill({ json: [song], headers: {'access-control-allow-origin':'*'} }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Tìm bằng giọng nói' }).click();
+  await expect(page.getByRole('searchbox')).toHaveValue('Bài hát thử');
+  await expect(page.getByRole('button', { name: /Bài hát thử.*Ca sĩ thử/ })).toBeVisible();
+});
+
 async function searchSong(page, closePresentation = true) {
   await page.route('https://lrclib.net/api/search?**', route => route.fulfill({ json: [song], headers: {'access-control-allow-origin':'*'} }));
   await page.getByRole('searchbox').fill('Bài hát thử');

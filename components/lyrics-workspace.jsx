@@ -83,6 +83,35 @@ export default function LyricsWorkspace() {
   const controller = useRef(null), serial = useRef(0), viewport = useRef(null), reader = useRef(null), presentButton = useRef(null);
   const debounce = useRef(null), composing = useRef(false);
   const queryInput = useRef(null);
+  // Voice search: browser Web Speech API (Chrome, Edge, Safari); the mic button only renders where it exists.
+  const recognition = useRef(null), [voiceReady, setVoiceReady] = useState(false), [listening, setListening] = useState(false);
+  useEffect(() => {
+    setVoiceReady(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
+    return () => recognition.current?.abort();
+  }, []);
+  function toggleVoice() {
+    if (listening) { recognition.current?.stop(); return; }
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const voice = new Recognition();
+    voice.lang = 'vi-VN'; voice.interimResults = true; voice.maxAlternatives = 1;
+    // Recognisers add punctuation ("Nàng thơ.") that breaks catalog/NCT matching, so keep words only.
+    const spoken = event => Array.from(event.results, result => result[0].transcript).join(' ').replace(/[.,!?;:…"“”]+/g, ' ').replace(/\s+/g, ' ').trim();
+    let heard = '', searched = false;
+    voice.onresult = event => {
+      heard = spoken(event);
+      // Show words while speaking; search once the phrase is final.
+      if (event.results[event.results.length - 1].isFinal) { searched = true; changeQuery(heard); } else setQuery(heard);
+    };
+    voice.onerror = event => setStatus(event.error === 'not-allowed' || event.error === 'service-not-allowed'
+      ? 'Trình duyệt chưa cho dùng micro. Hãy cho phép micro rồi bấm lại nút micro.'
+      : event.error === 'no-speech' ? 'Chưa nghe thấy giọng nói. Bấm nút micro và đọc tên bài hoặc ca sĩ.'
+      : 'Chưa nhận được giọng nói. Thử lại hoặc gõ tay.');
+    // Some browsers (Safari) end without ever marking a result final: search what was heard.
+    voice.onend = () => { setListening(false); if (heard && !searched) changeQuery(heard); };
+    recognition.current = voice;
+    try { voice.start(); setListening(true); setStatus('Đang nghe… hãy đọc tên bài hoặc ca sĩ.'); }
+    catch { setStatus('Chưa bật được micro. Thử lại sau giây lát.'); }
+  }
   const zingLyricsCache = useRef(new Map());
   const scroll = useAutoScroll(viewport, speed);
   useEffect(() => {
@@ -262,7 +291,7 @@ export default function LyricsWorkspace() {
   return <>
     <section className="workspace" aria-label="Thư viện lời bài hát">
       <div className="library">
-        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="search-label">Nhập tên bài hát hoặc ca sĩ. Tự động tìm từ 1 ký tự.</label><input ref={queryInput} id="query" type="search" minLength={1} maxLength={150} placeholder="Nhập tên bài hát…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} /><div className="search-actions"><button className="outline" type="submit" disabled={loading || query.trim().length < 1}>Tìm bài hát</button><button className="outline" type="button" onClick={() => { changeQuery(''); queryInput.current?.focus(); }}>Xóa từ khóa</button></div></form>
+        <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="search-label">Nhập tên bài hát hoặc ca sĩ. Tự động tìm từ 1 ký tự.</label><div className="search-field"><input ref={queryInput} id="query" type="search" minLength={1} maxLength={150} placeholder="Nhập tên bài hát…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} />{voiceReady && <button type="button" className={`voice ${listening ? 'listening' : ''}`} aria-label={listening ? 'Dừng nghe' : 'Tìm bằng giọng nói'} aria-pressed={listening} onClick={toggleVoice}><svg aria-hidden="true" viewBox="0 0 24 24" width="26" height="26"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></button>}</div><div className="search-actions"><button className="outline" type="submit" disabled={loading || query.trim().length < 1}>Tìm bài hát</button><button className="outline" type="button" onClick={() => { changeQuery(''); queryInput.current?.focus(); }}>Xóa từ khóa</button></div></form>
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>

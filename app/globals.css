@@ -52,6 +52,13 @@ h1.marquee:hover .marquee-track { animation-play-state: paused; }
 #query { display: block; width: 100%; min-width: 0; height: 84px; border: 2px solid var(--line); border-radius: 6px; padding: 12px 24px;
   font-size: 34px; font-weight: 600; background: var(--surface); color: var(--ink); caret-color: var(--accent-strong); transition: border-color .15s; }
 #query::placeholder { color: #6F7F96; font-weight: 400; font-size: 26px; }
+.search-field { position: relative; }
+.search-field:has(.voice) #query { padding-right: 84px; }
+.voice { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--sheen); color: var(--accent); }
+.voice:hover { background: #DCE8FF; }
+.voice.listening { background: var(--accent); color: #fff; animation: listening 1.4s ease-out infinite; }
+@keyframes listening { 0% { box-shadow: 0 0 0 0 #004AC655; } 100% { box-shadow: 0 0 0 16px #004AC600; } }
+@media (prefers-reduced-motion: reduce) { .voice.listening { animation: none; } }
 #query:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px #004AC633; }
 .search-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
