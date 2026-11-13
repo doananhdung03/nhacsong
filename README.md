@@ -52,8 +52,12 @@ và chỉ mở kết nối API tới LRCLIB (thêm WebSocket cho phát triển t
 Tự động tìm từ 2 ký tự sau khi ngừng gõ 350 ms; Enter/nút tìm chạy ngay.
 Hủy tìm kiếm cũ khi thay đổi nội dung, chờ gõ xong dấu tiếng Việt trước khi tìm.
 Tìm bài, chọn bản thu, lưu/bỏ lưu, chỉnh cỡ chữ, cuộn tay hoặc tự cuộn,
-trình chiếu nền tối, hỗ trợ toàn màn hình khi trình duyệt cho phép.
-Phím Space bật/dừng cuộn, ↑ ↓ điều chỉnh vị trí, Esc đóng trình chiếu.
+Nhấn vào bài để mở ngay trình chiếu toàn màn hình khi trình duyệt cho phép.
+Lời được chia theo đoạn trống, mỗi trang tối đa 4 dòng; dòng dài được ngắt thêm.
+Trang đầu hiển thị tên bài và ca sĩ. Chữ tự co để vừa màn hình.
+Phím mũi tên/Space chuyển đoạn, Home/End tới đầu/cuối, Esc thoát.
+Có nút chọn từng đoạn, nền sáng/tối được ghi nhớ trên trình duyệt.
+Nếu không có Fullscreen API, trình chiếu vẫn mở phủ cửa sổ trình duyệt.
 
 Cuộn theo tốc độ do người dùng chọn, chưa đồng bộ với âm thanh. Không có phát
 nhạc, hợp âm hoặc tone. API có thể thiếu bài hoặc giới hạn lượt gọi.

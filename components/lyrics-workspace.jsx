@@ -64,9 +64,13 @@ export default function LyricsWorkspace() {
     }
   }
   function selectTrack(track) {
-    scroll.stop(); setCurrent(track);
+    scroll.stop(); setCurrent(track); setPresenting(true);
+    enterFullscreen();
     if (viewport.current) viewport.current.scrollTop = 0;
     requestAnimationFrame(() => reader.current?.scrollIntoView({ block: 'start' }));
+  }
+  function enterFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
   }
   function toggleSaved() {
     if (!current) return;
@@ -74,7 +78,7 @@ export default function LyricsWorkspace() {
     try { localStorage.setItem(storageKey, JSON.stringify(next)); setSaved(next); }
     catch { setStatus('Không lưu được trên trình duyệt này. Có thể bộ nhớ đã đầy hoặc đang bị chặn.'); }
   }
-  function closePresentation() { setPresenting(false); presentButton.current?.focus(); }
+  function closePresentation() { setPresenting(false); requestAnimationFrame(() => presentButton.current?.focus()); }
   const tracks = savedView ? saved : results;
   return <>
     <section className="workspace" aria-label="Thư viện lời bài hát">
@@ -88,7 +92,7 @@ export default function LyricsWorkspace() {
         </div>
       </div>
       <section className="reader" ref={reader} aria-label="Lời bài hát" hidden={!current}>
-        {current ? <div><div className="song-meta"><h2>{current.trackName}</h2><p>{current.artistName}</p>{current.albumName && <p id="song-album">Album: {current.albumName}</p>}<div className="song-actions"><button className="outline" onClick={toggleSaved}>{saved.some(track => track.id === current.id) ? '♥ Đã lưu · Bỏ lưu' : '♡ Lưu bài'}</button><button ref={presentButton} className="primary" onClick={() => { scroll.stop(); setPresenting(true); }}>⛶ Trình chiếu</button></div></div>
+        {current ? <div><div className="song-meta"><h2>{current.trackName}</h2><p>{current.artistName}</p>{current.albumName && <p id="song-album">Album: {current.albumName}</p>}<div className="song-actions"><button className="outline" onClick={toggleSaved}>{saved.some(track => track.id === current.id) ? '♥ Đã lưu · Bỏ lưu' : '♡ Lưu bài'}</button><button ref={presentButton} className="primary" onClick={() => { scroll.stop(); setPresenting(true); enterFullscreen(); }}>⛶ Trình chiếu</button></div></div>
           <div className="reader-toolbar"><label>Cỡ chữ <input type="range" min="18" max="52" value={size} onChange={event => setSize(Number(event.target.value))} /></label><button className="text-button" aria-pressed={scroll.running} onClick={scroll.toggle}>{scroll.running ? 'Ⅱ Dừng cuộn' : '▷ Tự cuộn'}</button><label>Tốc độ <input type="range" min="10" max="80" value={speed} onChange={event => setSpeed(Number(event.target.value))} /></label></div>
           <div ref={viewport} id="lyrics-scroll" tabIndex={0} aria-label="Nội dung lời bài hát" onWheel={scroll.stop} onTouchStart={scroll.stop}><pre id="lyrics" style={{ fontSize: size }}>{plainText(current) || 'Chưa có lời cho bản thu này. Hãy chọn một kết quả khác.'}</pre></div><p className="source-note">Lời từ <a href="https://lrclib.net/" target="_blank" rel="noopener noreferrer">LRCLIB</a> · Có thể khác nhau giữa các bản thu</p>
         </div> : null}
