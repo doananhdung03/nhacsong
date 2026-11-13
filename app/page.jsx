@@ -4,7 +4,8 @@ export default function Home() {
   return <>
     <header className="topbar"><div className="page-width"><a href="/" className="brand">ÂM THANH NHẠC SỐNG HỒNG LÂM</a><span>Tìm lời và trình chiếu</span></div></header>
     <main>
-      <h1>ÂM THANH NHẠC SỐNG HỒNG LÂM</h1>
+      {/* Second copy makes the right-to-left scroll seamless; aria-hidden keeps the heading name single. */}
+      <h1 className="marquee" aria-label="ÂM THANH NHẠC SỐNG HỒNG LÂM"><span className="marquee-track"><span>ÂM THANH NHẠC SỐNG HỒNG LÂM</span><span aria-hidden="true">ÂM THANH NHẠC SỐNG HỒNG LÂM</span></span></h1>
       <p className="notice">Gõ tên bài hoặc chữ cái đầu, chọn bài, rồi chiếu lời chữ lớn lên màn hình.</p>
       <LyricsWorkspace />
     </main>
