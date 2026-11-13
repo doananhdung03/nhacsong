@@ -60,4 +60,7 @@ test('catalog matches initials and unaccented titles like "AL" -> À Lôi', () =
   assert.deepEqual(searchCatalog(songs, 'đi để').map(s=>s.title), ['Đi Để Trở Về']);
   assert.deepEqual(searchCatalog(songs, 'trinh').map(s=>s.title), ['Diễm Xưa']);
   assert.deepEqual(searchCatalog(songs, '  '), []);
+  const words = [catalogSong('Khoảnh Khắc', 'Đông Hùng'), catalogSong('Anh Khác Hay Em Khác', 'Khắc Việt'), catalogSong('Em Của Ngày Hôm Qua', 'Sơn Tùng')];
+  assert.deepEqual(searchCatalog(words, 'anh khác').map(s=>s.title), ['Anh Khác Hay Em Khác']); // no mid-word match
+  assert.deepEqual(searchCatalog(words, 'hôm qua').map(s=>s.title), ['Em Của Ngày Hôm Qua']); // word inside title still matches
 });

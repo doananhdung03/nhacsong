@@ -11,12 +11,20 @@ const idleStatus = 'Nhập từ 1 ký tự để tự động tìm bài hát.';
 
 async function lrclibSearch(text, signal) {
   const url = new URL('https://lrclib.net/api/search'); url.searchParams.set('q', text);
-  const response = await fetch(url, { signal, headers: { 'Lrclib-Client': 'LoiWeb/2.0' } });
-  if (response.status === 429) throw new Error('Nguồn lời đang giới hạn lượt tìm. Vui lòng thử lại sau một lúc.');
-  if (!response.ok) throw new Error('Nguồn lời tạm thời chưa phản hồi. Vui lòng thử lại.');
-  const data = await response.json();
-  if (!Array.isArray(data)) throw new Error('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
-  return data.filter(validTrack);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      // LRCLIB sometimes stalls 15-20 s while a fresh request answers in ~1 s: cap each try at 8 s and retry once.
+      const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]), headers: { 'Lrclib-Client': 'LoiWeb/2.0' } });
+      if (response.status === 429) throw new Error('Nguồn lời đang giới hạn lượt tìm. Vui lòng thử lại sau một lúc.');
+      if (!response.ok) throw new Error('Nguồn lời tạm thời chưa phản hồi. Vui lòng thử lại.');
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error('Dữ liệu phản hồi không hợp lệ. Vui lòng thử lại.');
+      return data.filter(validTrack);
+    } catch (error) {
+      if (error.name === 'TimeoutError' && attempt < 2 && !signal.aborted) continue;
+      throw error;
+    }
+  }
 }
 // Lyrics for a catalog song: hand-entered (Supabase) first, else the best LRCLIB match by title, preferring the same artist.
 async function resolveSong(song, signal) {
@@ -29,9 +37,11 @@ async function resolveSong(song, signal) {
   return best || rankTracks(rows, song.title)[0] || null;
 }
 const previewCount = 5; // keeps LRCLIB calls per search low (rate limit ~90/min)
+// Badge saying where a result comes from: our Supabase list or the LRCLIB API (negative id = hand-entered song).
+const Source = ({ local }) => <span className={`source ${local ? 'local' : 'api'}`}>{local ? 'Hồng Lâm' : 'LRCLIB'}</span>;
 // Person icon marks the artist/author line in result rows.
 const Artist = ({ name }) => <span className="artist"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="5" r="3" fill="currentColor" /><path d="M2 15c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5z" fill="currentColor" /></svg><span className="sr-only">Ca sĩ: </span>{name}</span>;
-const errorMessage = error => error.name === 'AbortError' ? 'Kết nối quá lâu. Vui lòng tìm lại.' : error instanceof TypeError ? 'Không kết nối được nguồn lời. Kiểm tra mạng rồi thử lại.' : error.message;
+const errorMessage = error => ['AbortError', 'TimeoutError'].includes(error.name) ? 'Kết nối quá lâu. Vui lòng tìm lại.' : error instanceof TypeError ? 'Không kết nối được nguồn lời. Kiểm tra mạng rồi thử lại.' : error.message;
 
 export default function LyricsWorkspace() {
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
@@ -155,9 +165,10 @@ export default function LyricsWorkspace() {
         <div className="tabs" role="group" aria-label="Chọn danh sách"><button className={`tab ${savedView ? '' : 'active'}`} aria-pressed={!savedView} onClick={() => setSavedView(false)}>Kết quả tìm kiếm</button><button className={`tab ${savedView ? 'active' : ''}`} aria-pressed={savedView} onClick={() => setSavedView(true)}>Bài đã lưu <span>{saved.length}</span></button></div>
         <p id="status" role="status" aria-live="polite">{savedView ? `${saved.length} bài đã lưu trên trình duyệt này.` : status}</p>
         <div className="results" aria-busy={!savedView && loading}>
-          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}</strong><Artist name={song.artist} />{(song.preview || song.key in resolved) && <span className="lyric-preview">{song.preview || (resolved[song.key] ? lyricPreview(plainText(resolved[song.key])) || 'Chưa có lời cho bản thu này.' : 'Chưa có lời trên LRCLIB. Có thể tự nhập ở trang quản lý.')}</span>}</button>)}
-          {!savedView && matches.length > 0 && tracks.length > 0 && <p className="group-label">Thêm từ LRCLIB</p>}
-          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}</strong><Artist name={track.artistName} /><span className="lyric-preview">{lyricPreview(plainText(track)) || 'Chưa có lời cho bản thu này.'}</span><span className="meta">{track.albumName && <span>Album {track.albumName}</span>}{durationLabel(track.duration) && <span>{durationLabel(track.duration)}</span>}</span></button>)}
+          {!savedView && matches.length > 0 && <p className="group-label">Danh sách Hồng Lâm · tìm theo chữ cái đầu</p>}
+          {!savedView && matches.map(song => <button key={`song-${song.key}`} className="result catalog" onClick={() => openSong(song)}><strong>{song.title}<Source local /></strong><Artist name={song.artist} />{(song.preview || song.key in resolved) && <span className="lyric-preview">{song.preview || (resolved[song.key] ? lyricPreview(plainText(resolved[song.key])) || 'Chưa có lời cho bản thu này.' : 'Chưa có lời trên LRCLIB. Có thể tự nhập ở trang quản lý.')}</span>}</button>)}
+          {!savedView && tracks.length > 0 && <p className="group-label">Từ LRCLIB · kho lời trên mạng</p>}
+          {tracks.map(track => <button key={track.id} className={`result ${current?.id === track.id ? 'selected' : ''}`} aria-pressed={current?.id === track.id} onClick={() => selectTrack(track)}><strong>{track.trackName}<Source local={track.id < 0} /></strong><Artist name={track.artistName} /><span className="lyric-preview">{lyricPreview(plainText(track)) || 'Chưa có lời cho bản thu này.'}</span><span className="meta">{track.albumName && <span>Album {track.albumName}</span>}{durationLabel(track.duration) && <span>{durationLabel(track.duration)}</span>}</span></button>)}
           {savedView && !tracks.length && <p className="empty">Chưa có bài đã lưu. Chọn một bài và nhấn “Lưu bài”.</p>}
         </div>
       </div>

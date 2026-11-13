@@ -24,7 +24,9 @@ async function lrclib(params) {
       return null; // give up on this song for now; a rerun retries it
     }
     if (!response.ok) return null;
-    const rows = await response.json();
+    // The body can still time out or break mid-read; treat that like a network error.
+    const rows = await response.json().catch(() => undefined);
+    if (rows === undefined) { if (attempt < 4) { await sleep(5000 * attempt); continue; } return null; }
     return Array.isArray(rows) ? rows.filter(validTrack) : [];
   }
 }
@@ -39,22 +41,29 @@ export function pickPreview(rows, song) {
 
 async function main() {
   const songs = await loadSongs('title,artist,initials,folded,key'); // works before preview.sql has run
-  let done = 0;
-  for (const song of songs) {
-    done++;
-    if (song.key in cache) continue;
-    const rows = await lrclib({ track_name: song.title, artist_name: song.artist });
-    await sleep(700); // ~85 requests/min, under the identified-client allowance
-    if (rows === null) continue;
-    cache[song.key] = pickPreview(rows, song);
-    if (done % 25 === 0 || done < 4) { writeFileSync(cachePath, JSON.stringify(cache)); console.error(`${done}/${songs.length}`); }
+  // LRCLIB answers slowly (~3-4 s with lyrics), so 4 workers share the queue; each pauses 3 s
+  // between calls, keeping the total near 50-60 requests/min, under the ~90/min allowance.
+  const queue = songs.filter(song => !(song.key in cache));
+  let done = songs.length - queue.length;
+  async function worker() {
+    for (let song; (song = queue.shift()); ) {
+      const rows = await lrclib({ track_name: song.title, artist_name: song.artist });
+      if (rows !== null) cache[song.key] = pickPreview(rows, song);
+      if (++done % 25 === 0) { writeFileSync(cachePath, JSON.stringify(cache)); console.error(`${done}/${songs.length}`); }
+      await sleep(3000);
+    }
   }
+  await Promise.all(Array.from({ length: 4 }, worker));
   writeFileSync(cachePath, JSON.stringify(cache));
   const quote = text => `'${text.replace(/'/g, "''")}'`;
   const rows = Object.entries(cache).filter(([, preview]) => preview).map(([key, preview]) => `(${quote(key)}, ${quote(preview)})`);
   const batches = [];
   for (let index = 0; index < rows.length; index += 500) batches.push(`update public.songs set preview = v.preview from (values\n${rows.slice(index, index + 500).join(',\n')}\n) as v(key, preview) where songs.key = v.key and songs.preview is null;`);
-  writeFileSync(new URL('../supabase/seed-previews.sql', import.meta.url), `-- ${rows.length} lyric previews from LRCLIB (scripts/fetch-previews.mjs). Safe to re-run; never overwrites an existing preview.\nalter table public.songs add column if not exists preview text check (char_length(preview) <= 200);\n\n${batches.join('\n\n')}\n`);
+  // The Supabase SQL Editor rejects ~1 MB queries, so write 2 batches (~270 KB) per file.
+  const header = '-- Lyric previews from LRCLIB (scripts/fetch-previews.mjs). Safe to re-run; never overwrites an existing preview.\nalter table public.songs add column if not exists preview text check (char_length(preview) <= 200);\n\n';
+  for (let part = 0; part * 2 < batches.length; part++) {
+    writeFileSync(new URL(`../supabase/seed-previews-${part + 1}.sql`, import.meta.url), `${header}${batches.slice(part * 2, part * 2 + 2).join('\n\n')}\n`);
+  }
   console.error(`wrote ${rows.length} previews (${songs.length - rows.length} songs without usable lyrics or not yet fetched)`);
 }
 

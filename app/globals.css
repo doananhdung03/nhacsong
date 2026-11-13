@@ -77,6 +77,9 @@ h1.marquee:hover .marquee-track { animation-play-state: paused; }
 .result .lyric-preview { grid-column: 1 / -1; font-size: 15px; color: #44546D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
 .result .meta { grid-column: 1 / -1; display: flex; gap: 14px; font-size: 13px; color: var(--muted); }
 .result .meta:empty { display: none; }
+.result .source { display: inline-block; margin-left: 10px; padding: 2px 8px; border-radius: 999px; vertical-align: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0; }
+.result .source.local { background: #6658C81F; color: #4E42A8; }
+.result .source.api { background: #004AC614; color: var(--accent); }
 .group-label { margin: 0; padding: 18px 16px 8px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); }
 .empty { color: var(--muted); font-size: 15px; margin: 18px 16px; }
 
