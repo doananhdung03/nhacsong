@@ -1,5 +1,7 @@
 'use client';
 
+import AdminYoutube from './admin-youtube';
+
 import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { catalogSong, lyricPreview, normalizeSearch, searchCatalog } from '../lib/lyrics.mjs';
@@ -77,6 +79,7 @@ export default function Admin() {
   const shown = filter.trim() ? searchCatalog(songs, filter, 50) : songs.slice(0, 50);
   return <section className="admin">
     <div className="admin-head"><h1>Quản lý bài</h1><span>{session.user.email}<button className="outline" onClick={() => supabase.auth.signOut()}>Đăng xuất</button></span></div>
+    <AdminYoutube key={session.user.id} session={session} />
     <form className="admin-form" onSubmit={save}>
       <label>Tên bài<input required maxLength={200} value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} /></label>
       <label>Ca sĩ<input required maxLength={200} value={form.artist} onChange={event => setForm({ ...form, artist: event.target.value })} /></label>

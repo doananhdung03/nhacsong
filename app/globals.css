@@ -199,3 +199,32 @@ html:has(#presentation[open]) { overflow: hidden; } /* lock page scroll behind t
   .admin-list li > span:first-of-type { grid-column: 1; grid-row: 2; }
   .admin-list .tag { display: none; }
 }
+
+/* YouTube karaoke */
+.search-modes { margin-bottom: 24px; }
+#youtube-query { width: 100%; min-width: 0; height: 76px; padding: 12px 66px 12px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: clamp(18px, 3vw, 28px); }
+.youtube-karaoke > p { color: var(--muted); line-height: 1.6; }
+.youtube-results { display: grid; gap: 14px; margin: 20px 0; }
+.youtube-result { display: grid; grid-template-columns: minmax(120px, 220px) 1fr; gap: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: var(--surface); text-align: left; }
+.youtube-result:hover, .youtube-result[aria-pressed=true] { border-color: var(--accent); }
+.youtube-result img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
+.youtube-result > span { display: flex; flex-direction: column; justify-content: center; gap: 10px; min-width: 0; }
+.youtube-result strong { font-size: 18px; overflow-wrap: anywhere; }
+.youtube-result small { color: var(--muted); }
+.youtube-result > span > span { color: var(--accent); font-size: 14px; }
+.youtube-player { margin-top: 24px; scroll-margin-top: 16px; }
+.youtube-player-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.youtube-player h2 { font-size: 20px; }
+.youtube-player-actions button { flex-shrink: 0; }
+.youtube-player iframe { width: 100%; aspect-ratio: 16 / 9; min-height: 200px; border: 0; border-radius: 12px; background: #000; }
+.youtube-player p { font-size: 14px; color: var(--muted); }
+@media (max-width: 600px) { .youtube-result { grid-template-columns: 1fr; gap: 10px; } .youtube-player-actions { flex-wrap: wrap; } }
+
+/* One saved key per table row; narrow screens scroll horizontally. */
+.youtube-key-table-wrap { min-width: 0; overflow-x: auto; }
+.youtube-key-table { width: 100%; border-collapse: collapse; text-align: left; }
+.youtube-key-table th, .youtube-key-table td { border: 1px solid var(--line); padding: 12px; white-space: nowrap; vertical-align: middle; }
+.youtube-key-table th { background: var(--bg); }
+.youtube-key-cell { display: flex; align-items: center; gap: 10px; }
+.youtube-key-cell input { width: 42ch; min-width: 42ch; font-family: ui-monospace, monospace; font-size: 14px; }
+.youtube-key-cell button, .youtube-key-cell > span { flex-shrink: 0; }

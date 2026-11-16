@@ -64,7 +64,7 @@ Chỉ lấy dữ liệu tìm kiếm và lời do Zing trả về; không tích h
 
 Khi kiểm tra trình duyệt, mọi request `/api/zing/*` đều được giả lập để không gọi dịch vụ thật.
 
-Tự động tìm từ 1 ký tự sau khi ngừng gõ 350 ms; Enter/nút tìm chạy ngay.
+Tự động tìm từ 1 ký tự sau khi ngừng gõ 1 giây; Enter/nút tìm chạy ngay.
 Hủy tìm kiếm cũ khi thay đổi nội dung, chờ gõ xong dấu tiếng Việt trước khi tìm.
 Giữ nguyên khoảng trắng trong ô nhập; chỉ chuẩn hóa khoảng trắng khi gửi API.
 Ưu tiên kết quả có dấu hiệu tiếng Việt trong tên bài, ca sĩ và lời bài hát.
@@ -77,6 +77,24 @@ Phím mũi tên/Space chuyển đoạn, Home/End tới đầu/cuối, Esc thoát
 Có nút chọn từng đoạn, nền sáng/tối được ghi nhớ trên trình duyệt.
 Nếu không có Fullscreen API, trình chiếu vẫn mở phủ cửa sổ trình duyệt.
 
-Cuộn theo tốc độ do người dùng chọn, chưa đồng bộ với âm thanh. Không có phát
-nhạc, hợp âm hoặc tone. API có thể thiếu bài hoặc giới hạn lượt gọi.
+Cuộn theo tốc độ do người dùng chọn, chưa đồng bộ với âm thanh. Luồng lời bài hát không có phát nhạc, hợp âm hoặc đổi tone. API có thể thiếu bài hoặc giới hạn lượt gọi.
 Quyền sử dụng lời bài hát cần kiểm tra riêng trước khi kinh doanh.
+
+
+### YouTube Karaoke
+
+Thêm `YOUTUBE_API_KEY` vào `.env.local` (và biến môi trường máy chủ trên hosting), rồi khởi động lại ứng dụng. Bật YouTube Data API v3 và giới hạn key cho API này. Không dùng tiền tố `NEXT_PUBLIC_`.
+
+Chọn **YouTube Karaoke**, nhập tên bài/tone hoặc dùng micro. Tự động tìm sau khi ngừng gõ 1 giây hoặc nói xong; mỗi trang tối đa 10 video. Từ khóa tự thêm “karaoke” nếu chưa có. Chọn video rồi bấm phát trong player YouTube; player hỗ trợ toàn màn hình. Có liên kết mở trên YouTube nếu video bị chặn nhúng. Kết quả được cache HTTP 5 phút; hạn mức tìm kiếm phụ thuộc project Google Cloud. Không lưu video vào Supabase.
+
+
+### Quản lý key trong admin
+
+Chạy `supabase/youtube-settings.sql` trong đúng project Supabase. Thêm `SUPABASE_SERVICE_ROLE_KEY` và `ADMIN_EMAIL` vào môi trường máy chủ (local và hosting); không dùng tiền tố NEXT_PUBLIC_. Đăng nhập `/admin` bằng email quản trị, vào mục YouTube Karaoke để lưu key mới hoặc nhập key hiện tại từ môi trường vào database. API xác minh tài khoản qua Supabase Auth. Danh sách chỉ trả trạng thái; nút Xem key gọi riêng API được bảo vệ để hiện giá trị cho quản trị viên. Bảng bật RLS và thu hồi quyền anon/authenticated; chỉ service_role truy cập được. Key database được ưu tiên; khi bảng chưa có bản ghi, dùng YOUTUBE_API_KEY dự phòng. Sau khi nhập thành công, có thể bỏ YOUTUBE_API_KEY khỏi môi trường và khởi động lại.
+
+Multi key: chạy lại `supabase/youtube-settings.sql` để thêm cột keyring, giữ nguyên key cũ. Admin có thể thêm tối đa 20 key có tên gợi nhớ và chọn một key đang dùng. Key mới thêm không tự thay key hiện tại. Key được ẩn mặc định và quản trị viên có thể bấm Xem key. Khi bật bộ đếm bên dưới, tự chuyển sau 100 lượt website ghi nhận; không tự thử lại khi Google báo hết quota.
+
+
+### Bộ đếm YouTube
+
+Chạy `supabase/youtube-usage.sql` sau `youtube-settings.sql`. Mỗi lần máy chủ chuẩn bị gọi Google sẽ dành trước một lượt trong database, khóa hàng để tránh vượt 100 do nhiều request đồng thời. Key có đủ 100 lượt sẽ được bỏ qua và key còn lượt tiếp theo tự trở thành key đang dùng. Đặt lại số đếm theo ngày America/Los_Angeles (0 giờ PT). Các lượt lỗi/hủy sau khi dành lượt vẫn được tính để tránh đánh giá thấp mức dùng. Cache được phục vụ không gọi route sẽ không tính. Bộ đếm chỉ ghi nhận website từ lúc cài đặt, không phải quota Google còn lại; nhiều key cùng project vẫn chung quota. Không tự thử các key khác khi Google báo quotaExceeded. Khi mọi key đều đạt 100, trả lỗi 429. Admin tải lại trang để xem số đếm.

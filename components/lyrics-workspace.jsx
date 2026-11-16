@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { catalogSong, cleanNctLyrics, collapseSameLyrics, splitArtists, durationLabel, fold, isNct, isZing, lyricPreview, nctTrack, songKey, normalizeSearch, plainText, rankTracks, searchCatalog, validTrack, vietnameseScore } from '../lib/lyrics.mjs';
 import { addSong, fillPreview, loadSongs, songLyrics } from '../lib/songs-db.mjs';
 import Presentation from './presentation';
+import YoutubeKaraoke from './youtube-karaoke';
 import useAutoScroll from './use-auto-scroll';
 
 const storageKey = 'loi.saved.v1';
@@ -72,6 +73,7 @@ const sourceBadge = track => isZing(track) ? <span className="source zing">Zing 
 const errorMessage = error => ['AbortError', 'TimeoutError'].includes(error.name) ? 'Kết nối quá lâu. Vui lòng tìm lại.' : error instanceof TypeError ? 'Không kết nối được nguồn lời. Kiểm tra mạng rồi thử lại.' : error.message;
 
 export default function LyricsWorkspace() {
+  const [mode, setMode] = useState('lyrics');
   const [query, setQuery] = useState(''), [results, setResults] = useState([]), [saved, setSaved] = useState([]);
   const [current, setCurrent] = useState(null), [savedView, setSavedView] = useState(false);
   const [nct, setNct] = useState([]); // NhacCuaTui results for the current query
@@ -289,6 +291,12 @@ export default function LyricsWorkspace() {
   const shownTracks = savedView ? tracks.map(item => ({ item, others: [] }))
     : collapseSameLyrics(tracks, track => track.trackName, track => track.artistName, plainText, sameLyrics);
   return <>
+    <div className="tabs search-modes" role="group" aria-label="Chọn kiểu tìm kiếm">
+      <button className={`tab ${mode === 'lyrics' ? 'active' : ''}`} aria-pressed={mode === 'lyrics'} onClick={() => setMode('lyrics')}>Lời bài hát</button>
+      <button className={`tab ${mode === 'youtube' ? 'active' : ''}`} aria-pressed={mode === 'youtube'} onClick={() => { cancelSearch(); recognition.current?.abort(); setLoading(false); scroll.stop(); setMode('youtube'); }}>YouTube Karaoke</button>
+    </div>
+    {mode === 'youtube' && <YoutubeKaraoke />}
+    <div hidden={mode !== 'lyrics'}>
     <section className="workspace" aria-label="Thư viện lời bài hát">
       <div className="library">
         <form role="search" onSubmit={event => { event.preventDefault(); search(query); }}><label htmlFor="query" className="search-label">Nhập tên bài hát hoặc ca sĩ. Tự động tìm từ 1 ký tự.</label><div className="search-field"><input ref={queryInput} id="query" type="search" minLength={1} maxLength={150} placeholder="Nhập tên bài hát…" required autoComplete="off" value={query} onChange={event => changeQuery(event.target.value)} onCompositionStart={() => { composing.current = true; cancelSearch(); setLoading(false); }} onCompositionEnd={event => { composing.current = false; changeQuery(event.currentTarget.value); }} />{voiceReady && <button type="button" className={`voice ${listening ? 'listening' : ''}`} aria-label={listening ? 'Dừng nghe' : 'Tìm bằng giọng nói'} aria-pressed={listening} onClick={toggleVoice}><svg aria-hidden="true" viewBox="0 0 24 24" width="26" height="26"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></button>}</div><div className="search-actions"><button className="outline" type="submit" disabled={loading || query.trim().length < 1}>Tìm bài hát</button><button className="outline" type="button" onClick={() => { changeQuery(''); queryInput.current?.focus(); }}>Xóa từ khóa</button></div></form>
@@ -314,6 +322,7 @@ export default function LyricsWorkspace() {
         </div> : null}
       </section>
     </section>
+    </div>
     {presenting && current && <Presentation track={current} onClose={closePresentation} />}
   </>;
 }
