@@ -14,6 +14,8 @@ const emptyForm = { id: null, title: '', artist: '', lyrics: '' };
 export default function Admin() {
   const [session, setSession] = useState(null), [ready, setReady] = useState(false);
   const [email, setEmail] = useState(''), [status, setStatus] = useState('');
+  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState(''), [confirmPassword, setConfirmPassword] = useState('');
   const [songs, setSongs] = useState([]), [filter, setFilter] = useState(''), [form, setForm] = useState(emptyForm), [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -34,11 +36,26 @@ export default function Admin() {
     }
     setSongs(rows);
   }
-  async function sendLink(event) {
-    event.preventDefault(); setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: `${location.origin}/admin` } });
-    setBusy(false);
-    setStatus(error ? `Chưa gửi được link: ${error.message}` : `Đã gửi link đăng nhập tới ${email.trim()}. Mở link trong email bằng chính trình duyệt này.`);
+  async function login(event) {
+    event.preventDefault(); setBusy(true); setStatus('');
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        setStatus(error.code === 'invalid_credentials' ? 'Email hoặc mật khẩu không đúng.' : error.code === 'email_not_confirmed' ? 'Email chưa được xác nhận.' : 'Chưa đăng nhập được. Kiểm tra kết nối và thử lại.');
+      } else setPassword('');
+    } catch { setStatus('Không kết nối được máy chủ đăng nhập. Vui lòng thử lại.'); }
+    finally { setBusy(false); }
+  }
+  async function changePassword(event) {
+    event.preventDefault();
+    if (newPassword !== confirmPassword) { setStatus('Mật khẩu xác nhận không khớp.'); return; }
+    setBusy(true); setStatus('');
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) setStatus('Chưa đổi được mật khẩu. Mật khẩu cần đủ mạnh; nếu phiên đã cũ, hãy đăng nhập lại.');
+      else { setNewPassword(''); setConfirmPassword(''); setStatus('Đã lưu mật khẩu mới. Bạn có thể dùng email và mật khẩu này để đăng nhập.'); }
+    } catch { setStatus('Không kết nối được máy chủ. Vui lòng thử lại.'); }
+    finally { setBusy(false); }
   }
   async function save(event) {
     event.preventDefault();
@@ -72,13 +89,25 @@ export default function Admin() {
   if (!ready) return null;
   if (!session) return <section className="admin">
     <h1>Quản lý bài</h1>
-    <form className="admin-login" onSubmit={sendLink}><label htmlFor="admin-email">Email quản trị</label><input id="admin-email" type="email" required autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /><div><button className="primary" disabled={busy}>Gửi link đăng nhập</button></div></form>
+    <form className="admin-login" onSubmit={login}>
+      <label htmlFor="admin-email">Email quản trị</label><input id="admin-email" type="email" required autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} />
+      <label htmlFor="admin-password">Mật khẩu</label><input id="admin-password" type="password" required autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} />
+      <div><button className="primary" disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button></div>
+      <small>Nếu trước đây dùng link email và chưa đặt mật khẩu, hãy đặt mật khẩu cho tài khoản trong Supabase Authentication trước.</small>
+    </form>
     {status && <p id="status" role="status">{status}</p>}
   </section>;
 
   const shown = filter.trim() ? searchCatalog(songs, filter, 50) : songs.slice(0, 50);
   return <section className="admin">
     <div className="admin-head"><h1>Quản lý bài</h1><span>{session.user.email}<button className="outline" onClick={() => supabase.auth.signOut()}>Đăng xuất</button></span></div>
+    <details className="admin-login"><summary>Đặt / đổi mật khẩu đăng nhập</summary>
+      <form className="admin-password-form" onSubmit={changePassword}>
+        <label htmlFor="new-admin-password">Mật khẩu mới</label><input id="new-admin-password" type="password" autoComplete="new-password" required minLength={8} value={newPassword} onChange={event => setNewPassword(event.target.value)} />
+        <label htmlFor="confirm-admin-password">Nhập lại mật khẩu mới</label><input id="confirm-admin-password" type="password" autoComplete="new-password" required minLength={8} value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} />
+        <button className="outline" disabled={busy}>Lưu mật khẩu</button>
+      </form>
+    </details>
     <AdminYoutube key={session.user.id} session={session} />
     <form className="admin-form" onSubmit={save}>
       <label>Tên bài<input required maxLength={200} value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} /></label>

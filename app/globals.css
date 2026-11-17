@@ -228,3 +228,5 @@ html:has(#presentation[open]) { overflow: hidden; } /* lock page scroll behind t
 .youtube-key-cell { display: flex; align-items: center; gap: 10px; }
 .youtube-key-cell input { width: 42ch; min-width: 42ch; font-family: ui-monospace, monospace; font-size: 14px; }
 .youtube-key-cell button, .youtube-key-cell > span { flex-shrink: 0; }
+
+.admin-password-form { display: grid; gap: 12px; margin-top: 16px; }

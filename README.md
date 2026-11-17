@@ -98,3 +98,8 @@ Multi key: chạy lại `supabase/youtube-settings.sql` để thêm cột keyrin
 ### Bộ đếm YouTube
 
 Chạy `supabase/youtube-usage.sql` sau `youtube-settings.sql`. Mỗi lần máy chủ chuẩn bị gọi Google sẽ dành trước một lượt trong database, khóa hàng để tránh vượt 100 do nhiều request đồng thời. Key có đủ 100 lượt sẽ được bỏ qua và key còn lượt tiếp theo tự trở thành key đang dùng. Đặt lại số đếm theo ngày America/Los_Angeles (0 giờ PT). Các lượt lỗi/hủy sau khi dành lượt vẫn được tính để tránh đánh giá thấp mức dùng. Cache được phục vụ không gọi route sẽ không tính. Bộ đếm chỉ ghi nhận website từ lúc cài đặt, không phải quota Google còn lại; nhiều key cùng project vẫn chung quota. Không tự thử các key khác khi Google báo quotaExceeded. Khi mọi key đều đạt 100, trả lỗi 429. Admin tải lại trang để xem số đếm.
+
+
+### Đăng nhập admin
+
+`/admin` dùng Supabase Auth qua email và mật khẩu, không gửi magic link. Tài khoản đã có phiên đăng nhập có thể mở “Đặt / đổi mật khẩu đăng nhập” để đặt mật khẩu (tối thiểu 8 ký tự). Tài khoản cũ chỉ dùng OTP cần đặt mật khẩu qua phiên còn đăng nhập hoặc quy trình khôi phục mật khẩu trong Supabase Authentication trước khi đăng xuất. Không tạo tài khoản hay mật khẩu mặc định. Quyền sửa bài và key vẫn kiểm tra qua RLS và ADMIN_EMAIL.
