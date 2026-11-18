@@ -103,3 +103,11 @@ Chạy `supabase/youtube-usage.sql` sau `youtube-settings.sql`. Mỗi lần máy
 ### Đăng nhập admin
 
 `/admin` dùng Supabase Auth qua email và mật khẩu, không gửi magic link. Tài khoản đã có phiên đăng nhập có thể mở “Đặt / đổi mật khẩu đăng nhập” để đặt mật khẩu (tối thiểu 8 ký tự). Tài khoản cũ chỉ dùng OTP cần đặt mật khẩu qua phiên còn đăng nhập hoặc quy trình khôi phục mật khẩu trong Supabase Authentication trước khi đăng xuất. Không tạo tài khoản hay mật khẩu mặc định. Quyền sửa bài và key vẫn kiểm tra qua RLS và ADMIN_EMAIL.
+
+### Nhận diện và metadata khi deploy
+
+Tên miền chuẩn mặc định: `https://nhacsong.vercel.app`. Khi đổi tên miền, cấu hình `SITE_URL` trên Vercel trước khi build lại, đồng thời sửa tên miền in trên `public/social-card.svg` và xuất lại PNG. Metadata gồm title, description tiếng Việt, canonical trang chủ, Open Graph/Twitter, WebSite JSON-LD, favicon ICO/SVG, Apple icon và manifest với icon 192/512 cùng bản maskable. Ảnh chia sẻ: `public/social-card.png` (1200×630); nguồn vector: `app/icon.svg` và `public/social-card.svg`.
+
+`/sitemap.xml` chỉ có trang chủ. `/admin` có noindex; robots chặn `/admin` và `/api/`. Preview Vercel có noindex và robots chặn toàn bộ, không đưa vào sitemap. Các khai báo robots không thay thế xác thực. Manifest hỗ trợ icon và chế độ standalone, không cung cấp tính năng offline.
+
+Trước khi deploy Production, cấu hình `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAIL` và chạy các SQL cấu hình YouTube trong project Supabase tương ứng. Không commit `.env.local`. Sau khi deploy, kiểm tra `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest`, favicon và ảnh chia sẻ; gửi sitemap trong Google Search Console nếu đã xác minh quyền sở hữu. Chưa có mã xác minh Search Console nên không khai báo mã giả.

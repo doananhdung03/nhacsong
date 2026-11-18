@@ -27,7 +27,11 @@ a { color: inherit; }
 
 .topbar { border-bottom: 1px solid var(--line); }
 .topbar .page-width { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 13px; color: var(--muted); }
-.brand { font-weight: 800; text-decoration: none; color: var(--rose); letter-spacing: .02em; }
+.brand { display: inline-flex; align-items: center; gap: 10px; padding-block: 10px; font-weight: 800; text-decoration: none; color: var(--rose); letter-spacing: .02em; }
+.brand img { display: block; flex-shrink: 0; border-radius: 10px; }
+.brand-name { display: grid; gap: 3px; line-height: 1.15; }
+.brand-name > span { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .1em; }
+.brand-name > strong { font-size: 21px; letter-spacing: .03em; background: linear-gradient(100deg, #004AC6, #7954D6); background-clip: text; -webkit-background-clip: text; color: transparent; }
 
 main { padding-block: 56px 72px; flex: 1; }
 /* line-height 1.55: the dot under Ạ must clear the circumflex of Â on the next line */

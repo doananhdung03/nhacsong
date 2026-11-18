@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#081D43"/><stop offset="1" stop-color="#302465"/></linearGradient>
+    <linearGradient id="brand" x2="1" y2="1"><stop stop-color="#004AC6"/><stop offset="1" stop-color="#7954D6"/></linearGradient>
+    <linearGradient id="text" x2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#C8B9FF"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1100" cy="80" r="280" fill="#7954D6" opacity=".14"/>
+  <circle cx="80" cy="650" r="250" fill="#004AC6" opacity=".18"/>
+  <path d="M0 505Q150 440 300 505T600 505T900 505T1200 505" fill="none" stroke="#8D9FFF" stroke-width="2" opacity=".2"/>
+  <g transform="translate(76 62) scale(.18)">
+    <rect width="512" height="512" rx="120" fill="url(#brand)"/>
+    <path d="M300 124v205" stroke="#fff" stroke-width="32" stroke-linecap="round"/>
+    <path d="M300 126v78l91-24v-78z" fill="#fff"/>
+    <ellipse cx="258" cy="337" rx="59" ry="43" transform="rotate(-18 258 337)" fill="#fff"/>
+    <path d="M148 229v72m-43-51v30m86-72v114" stroke="#C5D8FF" stroke-width="22" stroke-linecap="round"/>
+  </g>
+  <g font-family="Arial, sans-serif">
+    <text x="194" y="119" fill="#CDD8FF" font-size="24" font-weight="700" letter-spacing="3">ÂM THANH NHẠC SỐNG</text>
+    <text x="72" y="286" fill="url(#text)" font-size="116" font-weight="700" letter-spacing="-3">HỒNG LÂM</text>
+    <rect x="78" y="328" width="84" height="5" rx="2.5" fill="#A99BFF"/>
+    <text x="76" y="403" fill="#FFFFFF" font-size="35">Lời bài hát · Trình chiếu · Karaoke</text>
+    <text x="78" y="457" fill="#B6C5E6" font-size="25">Tìm nhanh bằng tên bài, ca sĩ hoặc giọng nói.</text>
+    <text x="78" y="565" fill="#C3CFF0" font-size="22">nhacsong.vercel.app</text>
+    <text x="1124" y="565" fill="#C3CFF0" font-size="20" text-anchor="end">DoanAnhDung03</text>
+  </g>
+</svg>
